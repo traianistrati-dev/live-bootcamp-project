@@ -19,5 +19,10 @@ async fn main() {
 
 async fn hello_handler() -> Html<&'static str> {
     // TODO: Update this to a custom message!
-    Html("<h1>Hello, World!</h1>")
+    Html(
+        r#"<h1 style="width:100%;">
+        <h2 style="text-align:center">Sprint 1 / Task 1</h2>
+        <h3 style="text-align:center">Amituofo (阿弥陀佛)</h3>
+        </h1>"#,
+    )
 }
