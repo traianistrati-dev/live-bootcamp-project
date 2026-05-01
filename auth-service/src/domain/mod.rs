@@ -1,3 +1,4 @@
-mod user;
+pub mod user;
 
-use user::*;
+pub use user::User;
+

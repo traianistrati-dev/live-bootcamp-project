@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
-use crate::domain::User;
+
+use crate::domain::user::User;
 
 #[derive(Debug, PartialEq)]
 pub enum UserStoreError {
@@ -67,22 +68,23 @@ mod tests {
     use super::*;
 
     #[tokio::test]
-    fn test_add_user() {
+    async fn test_add_user() {
         // todo!()
-        let user: User = HashmapUserStore::default()
+        let mut store = HashmapUserStore::default();
+
+        let user = store
             .add_user(User {
                 email: "test@example.com".into(),
                 password: "password".into(),
                 requires_2fa: false,
             });
-            assert!(user.is_ok());
-
+        assert!(user.is_ok());
     }
 
     #[tokio::test]
-    fn test_get_user() {
+    async fn test_get_user() {
         //todo!()
-        let store = HashmapUserStore::default();
+        let mut store = HashmapUserStore::default();
         let user = User {
             email: "test@example.com".into(),
             password: "password".into(),
@@ -90,22 +92,21 @@ mod tests {
         };
         store.add_user(user).unwrap();
 
-            let retrieved_user = store.get_user("test@example.com").unwrap();
-            assert_eq!(retrieved_user.email, "test@example.com");
-
+        let retrieved_user = store.get_user("test@example.com").unwrap();
+        assert_eq!(retrieved_user.email, "test@example.com");
     }
 
     #[tokio::test]
-    fn test_validate_user() {
+    async fn test_validate_user() {
         //todo!()
-        let store = HashmapUserStore::default();
+        let mut store = HashmapUserStore::default();
         let user = User {
             email: "test@example.com".into(),
             password: "password".into(),
             requires_2fa: false,
         };
         store.add_user(user).unwrap();
-        
+
         let is_valid = store.validate_user("test@example.com", "password");
         assert!(is_valid.is_ok());
     }
