@@ -1,14 +1,17 @@
+
+
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct User {
     pub email: String,
-    pub passwor: String,
-    requires_2fa: bool,
+    pub password: String,
+    pub requires_2fa: bool,
 }
 
 impl User {
-    fn new(&self, email: &str, password: &str, requires_2fa: bool) -> Self {
+    pub fn new(email: &str, password: &str, requires_2fa: bool) -> Self {
         Self {
-            email,
-            password,
+            email: email.to_string(),
+            password: password.to_string(),
             requires_2fa,
         }
     }
