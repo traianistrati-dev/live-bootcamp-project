@@ -1,13 +1,12 @@
-use crate::domain::errors::AuthAPIError;
+use std::error::Error;
+
 use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
     routing::post,
-    serve::Serve,
     Json, Router,
 };
 use serde::{Deserialize, Serialize};
-use std::error::Error;
 use tower_http::services::ServeDir;
 
 pub mod routes;
@@ -18,6 +17,7 @@ pub mod app_state;
 pub mod services;
 
 pub mod domain;
+use crate::domain::errors::AuthAPIError;
 
 // This struct encapsulates our application-related logic.
 pub struct Application {
