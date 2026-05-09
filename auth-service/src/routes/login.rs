@@ -3,13 +3,22 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     app_state::AppState,
-    domain::{email::Email, password::Password},
+    domain::{self, data_stores::UserStoreError, email::Email, password::Password},
 };
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 pub struct LoginRequest {
     pub email: String,
     pub password: String,
+}
+
+impl LoginRequest {
+    pub fn new(email: &str, password: &str) -> Self {
+        LoginRequest {
+            email: email.to_owned(),
+            password: password.to_owned(),
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
@@ -23,12 +32,15 @@ pub async fn login(
 ) -> impl IntoResponse {
     let user_store = state.user_store.write().await;
 
-    let email = Email::parse(request.email).unwrap();
-    let pass = Password::parse(request.password).unwrap();
-    let validate_credentials_result = user_store.validate_user(&email, &pass).await;
+    let email = Email::parse(request.email).map_err(|_| StatusCode::BAD_REQUEST)?;
 
-    match validate_credentials_result {
-        Ok(_) => Ok(StatusCode::OK),
+    let password = Password::parse(request.password).map_err(|_| StatusCode::BAD_REQUEST)?;
+
+    match user_store.validate_user(&email, &password).await {
+        Err(UserStoreError::InvalidCredentials) | Err(UserStoreError::UserNotFound) => {
+            Err(StatusCode::UNAUTHORIZED)
+        }
         Err(_) => Err(StatusCode::UNPROCESSABLE_ENTITY),
+        Ok(_) => Ok(StatusCode::OK),
     }
 }
