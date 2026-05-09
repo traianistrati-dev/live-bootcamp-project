@@ -19,6 +19,7 @@ pub mod services;
 pub mod domain;
 use crate::domain::errors::AuthAPIError;
 
+pub mod utils;
 // This struct encapsulates our application-related logic.
 pub struct Application {
     server: axum::serve::Serve<tokio::net::TcpListener, Router, Router>,

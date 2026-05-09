@@ -103,6 +103,41 @@ async fn should_return_401_if_incorrect_credentials() {
     helper_post_login_test_cases(test_cases, 401).await;
 }
 
+#[tokio::test]
+async fn should_return_200_if_valid_credentials_and_2fa_disabled() {
+    let email = "example@email.test";
+    let password = "12345678";
+
+    let app = TestApp::new().await;
+    {
+        // create new test User
+        let response = app
+            .post_signup(&serde_json::json!({
+                "email": email,
+                "password": password,
+                "requires2FA": false
+            }))
+            .await;
+        assert_eq!(response.status().as_u16(), 201);
+    }
+
+    let login_body = serde_json::json!({
+        "email": email,
+        "password": password,
+    });
+
+    let response = app.post_login(&login_body).await;
+
+    assert_eq!(response.status().as_u16(), 200);
+
+    let auth_cookie = response
+        .cookies()
+        .find(|cookie| cookie.name() == auth_service::utils::constants::JWT_COOKIE_NAME)
+        .expect("No auth cookie found");
+
+    assert!(!auth_cookie.value().is_empty());
+}
+
 /// Test Helper method
 async fn helper_post_login_test_cases(test_cases: &[serde_json::Value], expected_status_code: u16) {
     let app = TestApp::new().await;

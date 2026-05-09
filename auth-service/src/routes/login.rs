@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     app_state::AppState,
-    domain::{self, data_stores::UserStoreError, email::Email, password::Password},
+    domain::{data_stores::UserStoreError, email::Email, password::Password},
 };
 
 #[derive(Deserialize, Serialize)]
