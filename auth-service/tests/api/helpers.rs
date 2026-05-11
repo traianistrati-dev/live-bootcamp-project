@@ -5,6 +5,7 @@ use auth_service::services::hashmap_user_store::HashmapUserStore;
 
 pub struct TestApp {
     pub address: String,
+    pub cookie_jar: std::sync::Arc<reqwest::cookie::Jar>,
     pub http_client: reqwest::Client,
 }
 
@@ -22,10 +23,17 @@ impl TestApp {
         #[allow(clippy::let_underscore_future)]
         let _ = tokio::spawn(app.run());
 
-        let http_client = reqwest::Client::new();
+        // let http_client = reqwest::Client::new();
+
+        let cookie_jar = std::sync::Arc::new(reqwest::cookie::Jar::default());
+        let http_client = reqwest::Client::builder()
+            .cookie_provider(cookie_jar.clone())
+            .build()
+            .unwrap();
 
         Self {
             address,
+            cookie_jar,
             http_client,
         }
     }

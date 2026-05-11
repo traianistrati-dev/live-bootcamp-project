@@ -23,12 +23,12 @@ impl LoginRequest {
     }
 }
 
-#[axum::debug_handler]
+//#[axum::debug_handler]
 pub async fn login(
     State(state): State<AppState>,
-    jar: CookieJar, // New!
+    jar: CookieJar,
     Json(request): Json<LoginRequest>,
-) -> (CookieJar, Result<axum::response::Response, AuthAPIError>) {
+) -> (CookieJar, Result<impl IntoResponse, AuthAPIError>) {
     let email = match Email::parse(request.email) {
         Ok(email) => email,
         Err(_) => return (jar, Err(AuthAPIError::InvalidCredentials)),
@@ -57,5 +57,5 @@ pub async fn login(
 
     let updated_jar = jar.add(auth_cookie);
 
-    (updated_jar, Ok(StatusCode::OK.into_response()))
+    (updated_jar, Ok(StatusCode::OK))
 }

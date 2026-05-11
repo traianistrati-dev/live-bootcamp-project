@@ -5,4 +5,5 @@ pub mod password;
 pub mod user;
 
 //pub use errors::AuthAPIError;
+pub use errors::*;
 pub use user::User;
