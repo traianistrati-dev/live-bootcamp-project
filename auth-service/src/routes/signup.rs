@@ -25,10 +25,6 @@ pub async fn signup(
     let password =
         Password::parse(request.password).map_err(|_| AuthAPIError::InvalidCredentials)?;
 
-    // if !email.contains('@') || password.len() < 8 {
-    //     return Err(AuthAPIError::InvalidCredentials);
-    // }
-
     let user = User::new(email.clone(), password, request.requires_2fa);
     let mut user_store = state.user_store.write().await;
 
