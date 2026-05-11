@@ -1,16 +1,14 @@
 use std::error::Error;
 
 use axum::{
-    http::StatusCode,
+    http::{Method, StatusCode},
     response::{IntoResponse, Response},
     routing::post,
     Json, Router,
 };
 
-// use axum_extra::extract::cookie::{Cookie, CookieJar};
-
 use serde::{Deserialize, Serialize};
-use tower_http::services::ServeDir;
+use tower_http::{cors::CorsLayer, services::ServeDir};
 
 pub mod routes;
 use routes::*;
@@ -20,7 +18,7 @@ pub mod app_state;
 pub mod services;
 
 pub mod domain;
-use crate::domain::errors::AuthAPIError;
+use domain::errors::AuthAPIError;
 
 pub mod utils;
 // This struct encapsulates our application-related logic.
@@ -34,15 +32,15 @@ impl Application {
         app_state: app_state::AppState,
         address: &str,
     ) -> Result<Self, Box<dyn Error>> {
-        let assets_dir = ServeDir::new("assets");
         let router = Router::new()
-            .fallback_service(assets_dir)
+            .fallback_service(ServeDir::new("assets"))
             .route("/signup", post(signup))
             .route("/login", post(login))
             .route("/logout", post(logout))
             .route("/verify-2fa", post(verify_2fa))
             .route("/verify-token", post(verify_token))
-            .with_state(app_state);
+            .with_state(app_state)
+            .layer(Self::get_cors()?);
 
         let listener = tokio::net::TcpListener::bind(address).await?;
         let address = listener.local_addr()?.to_string();
@@ -50,9 +48,24 @@ impl Application {
 
         Ok(Self { address, server })
     }
+
     pub async fn run(self) -> Result<(), std::io::Error> {
         println!("listening on {}", &self.address);
         self.server.await
+    }
+
+    fn get_cors() -> Result<CorsLayer, Box<dyn Error>> {
+        let allowed_origins = [
+            "http://localhost:8000".parse()?,
+            "http://157.230.221.162:8000".parse()?,
+        ];
+
+        Ok(CorsLayer::new()
+            // Allow GET and POST requests
+            .allow_methods([Method::GET, Method::POST])
+            // Allow cookies to be included in requests
+            .allow_credentials(true)
+            .allow_origin(allowed_origins))
     }
 }
 

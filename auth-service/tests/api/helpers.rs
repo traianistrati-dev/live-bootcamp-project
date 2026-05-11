@@ -1,4 +1,4 @@
-use auth_service::Application;
+use auth_service::{utils, Application};
 
 use auth_service::app_state::AppState;
 use auth_service::services::hashmap_user_store::HashmapUserStore;
@@ -14,7 +14,7 @@ impl TestApp {
         let user_store = std::sync::Arc::new(tokio::sync::RwLock::new(HashmapUserStore::default()));
         let app_state = AppState::new(user_store);
 
-        let app = Application::build(app_state, "127.0.0.1:0")
+        let app = Application::build(app_state, utils::constants::test::APP_ADDRESS)
             .await
             .expect("Failed to build app");
 
