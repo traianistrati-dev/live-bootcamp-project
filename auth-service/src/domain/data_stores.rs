@@ -2,12 +2,20 @@ use super::email::Email;
 use super::password::Password;
 use super::user::User;
 
+use crate::domain::AuthAPIError;
+
 #[derive(Debug, PartialEq)]
 pub enum UserStoreError {
     UserAlreadyExists,
     UserNotFound,
     InvalidCredentials,
     UnexpectedError,
+}
+
+#[async_trait::async_trait]
+pub trait BannedTokenStore {
+    async fn add_banned_token(&mut self, token: String) -> Result<(), AuthAPIError>;
+    async fn contains_banned_token(&self, token: String) -> bool;
 }
 
 #[async_trait::async_trait]
