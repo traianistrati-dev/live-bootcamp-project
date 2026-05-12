@@ -3,12 +3,11 @@ use std::collections::HashSet;
 // use crate::app_state::AppState;
 
 use crate::domain::{data_stores::BannedTokenStore, AuthAPIError};
-use crate::utils::auth::validate_token;
 //use axum::http::StatusCode;
 //use axum::response::IntoResponse;
 
 #[derive(Default)]
-struct HashsetBannedTokenStore {
+pub struct HashsetBannedTokenStore {
     pub banned_tokens: HashSet<String>,
 }
 
@@ -24,7 +23,7 @@ impl BannedTokenStore for HashsetBannedTokenStore {
         }
         Err(AuthAPIError::UnexpectedError)
 
-        // match validate_token(&token).await {
+        // match crate::utils::auth::validate_token(&token).await {
         //     Ok(_) => match self.banned_tokens.insert(token) {
         //         true => Ok(()),
         //         _ => Err(AuthAPIError::UnexpectedError),

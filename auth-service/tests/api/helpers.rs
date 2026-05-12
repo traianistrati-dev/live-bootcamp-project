@@ -1,6 +1,7 @@
 use auth_service::{utils, Application};
 
 use auth_service::app_state::AppState;
+use auth_service::services::banned_tokens_store::HashsetBannedTokenStore;
 use auth_service::services::hashmap_user_store::HashmapUserStore;
 
 pub struct TestApp {
@@ -12,7 +13,9 @@ pub struct TestApp {
 impl TestApp {
     pub async fn new() -> Self {
         let user_store = std::sync::Arc::new(tokio::sync::RwLock::new(HashmapUserStore::default()));
-        let app_state = AppState::new(user_store);
+        let banned_tokens_store =
+            std::sync::Arc::new(tokio::sync::RwLock::new(HashsetBannedTokenStore::default()));
+        let app_state = AppState::new(user_store, banned_tokens_store);
 
         let app = Application::build(app_state, utils::constants::test::APP_ADDRESS)
             .await
