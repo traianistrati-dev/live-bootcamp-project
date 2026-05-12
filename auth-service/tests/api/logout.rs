@@ -1,4 +1,7 @@
-use auth_service::utils::constants::JWT_COOKIE_NAME;
+use auth_service::{
+    domain::{data_stores::BannedTokenStore, password},
+    utils::constants::JWT_COOKIE_NAME,
+};
 use reqwest::Url;
 
 use crate::helpers::TestApp;
@@ -27,4 +30,52 @@ async fn should_return_401_if_invalid_token() {
     let logout_response = app.post_logout().await;
 
     assert_eq!(logout_response.status().as_u16(), 401);
+}
+
+#[tokio::test]
+async fn should_return_200_if_jwt_cookie_is_valid() {
+    let app = TestApp::new().await;
+
+    let email = "example@email.test";
+    let password = "12345678";
+
+    assert_eq!(
+        app.post_signup(&serde_json::json!({
+            "email": email,
+            "password": password,
+            "requires2FA": false
+        }))
+        .await
+        .status()
+        .as_u16(),
+        201
+    );
+
+    let response = app
+        .post_login(&serde_json::json!({
+            "email": email,
+            "password": password,
+        }))
+        .await;
+
+    assert_eq!(response.status().as_u16(), 200);
+
+    let auth_cookie = response
+        .cookies()
+        .find(|cookie| cookie.name() == JWT_COOKIE_NAME)
+        .expect("No auth cookie found");
+
+    assert!(!auth_cookie.value().is_empty());
+
+    let token = auth_cookie.value();
+
+    assert_eq!(app.post_logout().await.status().as_u16(), 200);
+
+    assert!(app
+        .banned_tokens_store
+        .read()
+        .await
+        .contains_banned_token(token.to_string())
+        .await
+        .expect("Failed to check banned token"));
 }

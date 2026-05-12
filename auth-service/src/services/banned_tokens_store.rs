@@ -32,8 +32,11 @@ impl BannedTokenStore for HashsetBannedTokenStore {
         // }
     }
 
-    async fn contains_banned_token(&self, token: String) -> bool {
-        self.banned_tokens.contains(&token)
+    async fn contains_banned_token(&self, token: String) -> Result<bool, AuthAPIError> {
+        if self.banned_tokens.contains(&token) {
+            return Ok(true);
+        }
+        Err(AuthAPIError::UnexpectedError)
     }
 }
 
@@ -61,16 +64,14 @@ mod tests {
             .await
             .is_ok());
 
-        assert_eq!(
-            store
-                .contains_banned_token(String::from("test_token"))
-                .await,
-            true
-        );
+        assert!(store
+            .contains_banned_token(String::from("test_token"))
+            .await
+            .is_ok());
 
-        assert_eq!(
-            store.contains_banned_token(String::from("invalid")).await,
-            false
-        );
+        assert!(store
+            .contains_banned_token(String::from("invalid"))
+            .await
+            .is_err());
     }
 }
