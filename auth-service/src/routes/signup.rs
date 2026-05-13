@@ -28,11 +28,11 @@ pub async fn signup(
     let user = User::new(email.clone(), password, request.requires_2fa);
     let mut user_store = state.user_store.write().await;
 
-    if let Ok(_) = user_store.get_user(&email).await {
+    if user_store.get_user(&email).await.is_ok() {
         return Err(AuthAPIError::UserAlreadyExists);
     }
 
-    if let Err(_) = user_store.add_user(user).await {
+    if user_store.add_user(user).await.is_err() {
         return Err(AuthAPIError::UnexpectedError);
     }
 

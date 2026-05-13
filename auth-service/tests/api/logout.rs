@@ -1,7 +1,4 @@
-use auth_service::{
-    domain::{data_stores::BannedTokenStore, password},
-    utils::constants::JWT_COOKIE_NAME,
-};
+use auth_service::{domain::data_stores::BannedTokenStore, utils::constants::JWT_COOKIE_NAME};
 use reqwest::Url;
 
 use crate::helpers::TestApp;
@@ -71,11 +68,13 @@ async fn should_return_200_if_jwt_cookie_is_valid() {
 
     assert_eq!(app.post_logout().await.status().as_u16(), 200);
 
-    assert!(app
+    let contains_banned_token = app
         .banned_tokens_store
         .read()
         .await
-        .contains_banned_token(token.to_string())
+        .contains_banned_token(token)
         .await
-        .expect("Failed to check banned token"));
+        .expect("Failed to check banned token");
+
+    assert_eq!(contains_banned_token, true);
 }

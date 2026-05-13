@@ -15,7 +15,7 @@ pub enum UserStoreError {
 #[async_trait::async_trait]
 pub trait BannedTokenStore {
     async fn add_banned_token(&mut self, token: String) -> Result<(), AuthAPIError>;
-    async fn contains_banned_token(&self, token: String) -> Result<bool, AuthAPIError>;
+    async fn contains_banned_token(&self, token: &str) -> Result<bool, AuthAPIError>;
 }
 
 #[async_trait::async_trait]

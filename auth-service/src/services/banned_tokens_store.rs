@@ -1,10 +1,6 @@
 use std::collections::HashSet;
 
-// use crate::app_state::AppState;
-
 use crate::domain::{data_stores::BannedTokenStore, AuthAPIError};
-//use axum::http::StatusCode;
-//use axum::response::IntoResponse;
 
 #[derive(Default)]
 pub struct HashsetBannedTokenStore {
@@ -13,30 +9,18 @@ pub struct HashsetBannedTokenStore {
 
 #[async_trait::async_trait]
 impl BannedTokenStore for HashsetBannedTokenStore {
-    async fn add_banned_token(
-        //  State(state): State<AppState>,
-        &mut self,
-        token: String,
-    ) -> Result<(), AuthAPIError> {
+    async fn add_banned_token(&mut self, token: String) -> Result<(), AuthAPIError> {
         if self.banned_tokens.insert(token) {
             return Ok(());
         }
         Err(AuthAPIError::UnexpectedError)
-
-        // match crate::utils::auth::validate_token(&token).await {
-        //     Ok(_) => match self.banned_tokens.insert(token) {
-        //         true => Ok(()),
-        //         _ => Err(AuthAPIError::UnexpectedError),
-        //     },
-        //     Err(_) => Err(AuthAPIError::InvalidToken),
-        // }
     }
 
-    async fn contains_banned_token(&self, token: String) -> Result<bool, AuthAPIError> {
-        if self.banned_tokens.contains(&token) {
+    async fn contains_banned_token(&self, token: &str) -> Result<bool, AuthAPIError> {
+        if self.banned_tokens.contains(token) {
             return Ok(true);
         }
-        Err(AuthAPIError::UnexpectedError)
+        return Ok(false);
     }
 }
 
@@ -48,7 +32,6 @@ mod tests {
     async fn test_add_banned_token_should_succeed() {
         let mut store = HashsetBannedTokenStore::default();
 
-        //let res = store.add_banned_token(_get_valid_token()).await;
         assert!(store
             .add_banned_token(String::from("test_token"))
             .await
@@ -64,14 +47,8 @@ mod tests {
             .await
             .is_ok());
 
-        assert!(store
-            .contains_banned_token(String::from("test_token"))
-            .await
-            .is_ok());
+        assert!(store.contains_banned_token("test_token").await.unwrap() == true);
 
-        assert!(store
-            .contains_banned_token(String::from("invalid"))
-            .await
-            .is_err());
+        assert!(store.contains_banned_token("invalid").await.unwrap() == false);
     }
 }

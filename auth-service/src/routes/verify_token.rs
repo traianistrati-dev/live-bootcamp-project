@@ -1,4 +1,6 @@
-use axum::{http::StatusCode, response::IntoResponse, Json};
+use crate::app_state::AppState;
+use axum::Json;
+use axum::{extract::State, http::StatusCode, response::IntoResponse};
 use serde::{Deserialize, Serialize};
 
 use crate::domain::errors::AuthAPIError;
@@ -10,9 +12,10 @@ pub struct VerifyTokenRequest {
 }
 
 pub async fn verify_token(
+    State(state): State<AppState>,
     Json(request): Json<VerifyTokenRequest>,
 ) -> Result<impl IntoResponse, AuthAPIError> {
-    match validate_token(&request.token).await {
+    match validate_token(&request.token, state.banned_tokens_store).await {
         Ok(_) => Ok(StatusCode::OK),
         Err(_) => Err(AuthAPIError::InvalidToken),
     }
