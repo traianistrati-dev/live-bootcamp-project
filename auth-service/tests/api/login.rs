@@ -1,6 +1,45 @@
 use crate::helpers::TestApp;
 
 #[tokio::test]
+async fn should_return_206_if_valid_credentials_and_2fa_enabled() {
+    let email = "example@email.test";
+    let password = "12345678";
+
+    let app = TestApp::new().await;
+
+    {
+        // create new test User
+        let response = app
+            .post_signup(&serde_json::json!({
+                "email": email,
+                "password": password,
+                "requires2FA": true
+            }))
+            .await;
+        assert_eq!(response.status().as_u16(), 201);
+    }
+
+    let response = app
+        .post_login(&serde_json::json!({
+            "email": email,
+            "password": password
+        }))
+        .await;
+
+    assert_eq!(response.status().as_u16(), 206);
+
+    assert_eq!(
+        response
+            .json::<auth_service::routes::TwoFactorAuthResponse>()
+            .await
+            .expect("Could not deserialize response body to TwoFactorAuthResponse")
+            .message,
+        "2FA required".to_owned()
+    );
+    //todo!();
+}
+
+#[tokio::test]
 async fn should_return_422_if_malformed_credentials() {
     let email = "example@email.test";
 

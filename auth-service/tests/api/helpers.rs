@@ -85,11 +85,13 @@ impl TestApp {
             .await
             .expect("Failed to execute request.")
     }
-    pub async fn post_verify2fa(&self) -> reqwest::Response {
-        let json = "{}";
+    pub async fn post_verify2fa<Body>(&self, body: &Body) -> reqwest::Response
+    where
+        Body: serde::Serialize,
+    {
         self.http_client
             .post(&format!("{}/verify-2fa", &self.address))
-            .json(json)
+            .json(body)
             .send()
             .await
             .expect("Failed to execute request.")
