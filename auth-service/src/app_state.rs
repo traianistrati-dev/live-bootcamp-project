@@ -1,8 +1,9 @@
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
-use crate::domain::data_stores::{BannedTokenStore, UserStore};
+use crate::domain::data_stores::{BannedTokenStore, TwoFACodeStore, UserStore};
 
+pub type TwoFACodeStoreType = Arc<RwLock<dyn TwoFACodeStore + Send + Sync>>;
 pub type UserStoreType = Arc<RwLock<dyn UserStore + Send + Sync>>;
 pub type BannedTokenStoreType = Arc<RwLock<dyn BannedTokenStore + Send + Sync>>;
 
@@ -10,13 +11,19 @@ pub type BannedTokenStoreType = Arc<RwLock<dyn BannedTokenStore + Send + Sync>>;
 pub struct AppState {
     pub user_store: UserStoreType,
     pub banned_tokens_store: BannedTokenStoreType,
+    pub two_fa_code_store: TwoFACodeStoreType, // New!
 }
 
 impl AppState {
-    pub fn new(user_store: UserStoreType, banned_tokens_store: BannedTokenStoreType) -> Self {
+    pub fn new(
+        user_store: UserStoreType,
+        banned_tokens_store: BannedTokenStoreType,
+        two_fa_code_store: TwoFACodeStoreType,
+    ) -> Self {
         Self {
             user_store,
             banned_tokens_store,
+            two_fa_code_store,
         }
     }
 }

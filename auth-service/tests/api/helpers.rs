@@ -2,6 +2,7 @@ use auth_service::{utils, Application};
 
 use auth_service::app_state::AppState;
 use auth_service::services::banned_tokens_store::HashsetBannedTokenStore;
+use auth_service::services::hashmap_two_fa_code_store::HashmapTwoFACodeStore;
 use auth_service::services::hashmap_user_store::HashmapUserStore;
 use std::sync::Arc;
 use tokio::sync::RwLock;
@@ -11,13 +12,19 @@ pub struct TestApp {
     pub cookie_jar: Arc<reqwest::cookie::Jar>,
     pub http_client: reqwest::Client,
     pub banned_tokens_store: Arc<RwLock<HashsetBannedTokenStore>>,
+    pub hashmap_two_fa_code_store: Arc<RwLock<HashmapTwoFACodeStore>>,
 }
 
 impl TestApp {
     pub async fn new() -> Self {
         let user_store = Arc::new(RwLock::new(HashmapUserStore::default()));
         let banned_tokens_store = Arc::new(RwLock::new(HashsetBannedTokenStore::default()));
-        let app_state = AppState::new(user_store, banned_tokens_store.clone());
+        let hashmap_two_fa_code_store = Arc::new(RwLock::new(HashmapTwoFACodeStore::default()));
+        let app_state = AppState::new(
+            user_store,
+            banned_tokens_store.clone(),
+            hashmap_two_fa_code_store.clone(),
+        );
 
         let app = Application::build(app_state, utils::constants::test::APP_ADDRESS)
             .await
@@ -27,8 +34,6 @@ impl TestApp {
 
         #[allow(clippy::let_underscore_future)]
         let _ = tokio::spawn(app.run());
-
-        // let http_client = reqwest::Client::new();
 
         let cookie_jar = Arc::new(reqwest::cookie::Jar::default());
         let http_client = reqwest::Client::builder()
@@ -41,6 +46,7 @@ impl TestApp {
             cookie_jar,
             http_client,
             banned_tokens_store,
+            hashmap_two_fa_code_store,
         }
     }
 
