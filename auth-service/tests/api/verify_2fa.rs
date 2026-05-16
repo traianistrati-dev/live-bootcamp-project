@@ -6,6 +6,84 @@ use auth_service::{
 
 use crate::helpers::TestApp;
 
+use auth_service::domain::data_stores::LoginAttemptId;
+
+#[tokio::test]
+async fn should_return_422_if_malformed_input() {
+    let app = TestApp::new().await;
+
+    let email = "example@email.test";
+    let password = "12345678";
+    {
+        //create new User
+        let signup_body = serde_json::json!({
+            "email": email,
+            "password": password,
+            "requires2FA": true
+        });
+
+        assert_eq!(app.post_signup(&signup_body).await.status().as_u16(), 201);
+    }
+
+    let response_login = app
+        .post_login(&serde_json::json!({
+            "email": email,
+            "password": password
+        }))
+        .await;
+
+    assert_eq!(response_login.status().as_u16(), 206);
+
+    let response_body = response_login
+        .json::<TwoFactorAuthResponse>()
+        .await
+        .expect("Could not deserialize response body to TwoFactorAuthResponse");
+
+    assert_eq!(response_body.message, "2FA required".to_owned());
+    assert!(!response_body.login_attempt_id.is_empty());
+
+    {
+        let test_cases = &[
+            serde_json::json!({
+                "email": email,
+                  "loginAttemptId": response_body.login_attempt_id,
+                  "2FACode": 1111
+            }),
+            serde_json::json!({
+                "email": email,
+                  "loginAttemptId": response_body.login_attempt_id,
+                  // "2FACode": "string"
+            }),
+            serde_json::json!({
+                "email": email,
+                  // "loginAttemptId": response_body.login_attempt_id,
+                  "2FACode": "string"
+            }),
+            // serde_json::json!({
+            //     "email": email,
+            //       "loginAttemptId":"",
+            //       "2FACode": ""
+            // }),
+            // serde_json::json!({
+            //     "email": true,
+            //       "loginAttemptId":response_body.login_attempt_id,
+            //       "2FACode": ""
+            // }),
+        ];
+
+        for test_case in test_cases {
+            let verify_2fa_rsponse = app.post_verify2fa(&test_case).await;
+
+            assert_eq!(
+                verify_2fa_rsponse.status().as_u16(),
+                422,
+                "\x1b[41m verify_2fa_rsponse: {:?} \x1b[0m",
+                verify_2fa_rsponse
+            );
+        }
+    }
+}
+
 #[tokio::test]
 async fn should_return_200_if_correct_code() {
     let app = TestApp::new().await;
