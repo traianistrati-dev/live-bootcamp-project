@@ -84,6 +84,17 @@ async fn handle_2fa(
         return (jar, Err(AuthAPIError::UnexpectedError));
     }
 
+    let email_2fa_result = state
+        .email_client
+        .read()
+        .await
+        .send_email(&email, &"2FA Code", two_fa_code.as_ref())
+        .await;
+
+    if email_2fa_result.is_err() {
+        return (jar, Err(AuthAPIError::UnexpectedError));
+    }
+
     let auth_cookie = match utils::auth::generate_auth_cookie(email) {
         Ok(cookie) => cookie,
         Err(_) => return (jar, Err(AuthAPIError::UnexpectedError)),
