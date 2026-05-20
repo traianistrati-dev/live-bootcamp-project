@@ -18,6 +18,8 @@ async fn main() {
 
     let email_client = std::sync::Arc::new(tokio::sync::RwLock::new(MockEmailClient::default()));
 
+    let pg_pool = configure_postgresql().await;
+
     let app_state = AppState::new(
         user_store,
         banned_tokens_store,
@@ -30,4 +32,19 @@ async fn main() {
         .expect("Failed to build app");
 
     app.run().await.expect("Failed to run app");
+}
+
+pub async fn configure_postgresql() -> sqlx::postgres::PgPool {
+    // Create a new database connection pool
+    let pg_pool = auth_service::get_postgres_pool(&utils::constants::prod::DATABASE_URL)
+        .await
+        .expect("Failed to create Postgres connection pool!");
+
+    // Run database migrations against our test database!
+    sqlx::migrate!()
+        .run(&pg_pool)
+        .await
+        .expect("Failed to run migrations");
+
+    pg_pool
 }

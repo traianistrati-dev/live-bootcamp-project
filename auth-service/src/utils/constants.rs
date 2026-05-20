@@ -1,11 +1,10 @@
 use dotenvy::dotenv;
-use lazy_static::lazy_static;
 use std::env as std_env;
 
 // Define a lazily evaluated static. lazy_static is needed because std_env::var is not a const function.
 pub const JWT_COOKIE_NAME: &str = "jwt";
 
-lazy_static! {
+lazy_static::lazy_static! {
     pub static ref JWT_SECRET: String = env_jwt::get_token();
 }
 
@@ -26,6 +25,10 @@ pub mod env_jwt {
 
 pub mod prod {
     pub const APP_ADDRESS: &str = "0.0.0.0:3000";
+    lazy_static::lazy_static! {
+        pub static ref DATABASE_URL: String =
+            "postgres://postgres:123zxcQWE@localhost:5432".to_string();
+    }
 }
 
 pub mod test {
