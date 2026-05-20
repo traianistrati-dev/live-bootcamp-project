@@ -142,7 +142,7 @@ mod tests {
         let email = Email::parse("test@example.com".to_owned()).unwrap();
         let token = generate_auth_token(&email).unwrap();
         let banned_token_store = std::sync::Arc::new(tokio::sync::RwLock::new(
-            crate::services::banned_tokens_store::HashsetBannedTokenStore::default(),
+            crate::services::data_stores::banned_tokens_store::HashsetBannedTokenStore::default(),
         ));
         let result = validate_token(&token, banned_token_store)
             .await
@@ -162,7 +162,7 @@ mod tests {
     async fn test_validate_token_with_invalid_token() {
         let token = "invalid_token".to_owned();
         let banned_token_store = std::sync::Arc::new(tokio::sync::RwLock::new(
-            crate::services::banned_tokens_store::HashsetBannedTokenStore::default(),
+            crate::services::data_stores::banned_tokens_store::HashsetBannedTokenStore::default(),
         ));
         let result = validate_token(&token, banned_token_store).await;
         assert!(result.is_err());

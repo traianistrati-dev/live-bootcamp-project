@@ -1,9 +1,9 @@
 use auth_service::{utils, Application};
 
 use auth_service::app_state::AppState;
-use auth_service::services::banned_tokens_store::HashsetBannedTokenStore;
-use auth_service::services::hashmap_two_fa_code_store::HashmapTwoFACodeStore;
-use auth_service::services::hashmap_user_store::HashmapUserStore;
+use auth_service::services::data_stores::banned_tokens_store::HashsetBannedTokenStore;
+use auth_service::services::data_stores::hashmap_two_fa_code_store::HashmapTwoFACodeStore;
+use auth_service::services::data_stores::hashmap_user_store::HashmapUserStore;
 use auth_service::services::mock_email_client::MockEmailClient;
 use std::sync::Arc;
 use tokio::sync::RwLock;
