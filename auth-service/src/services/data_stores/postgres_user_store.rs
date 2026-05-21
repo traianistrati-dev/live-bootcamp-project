@@ -55,21 +55,15 @@ impl UserStore for PostgresUserStore {
 
         match user {
             Ok(user) => match user {
-                Some(user) =>
-                // Ok(User {
-                //     email: Email(user.email),
-                //     password: HashedPassword::from(user.password_hash),
-                //     requires_2fa: user.requires_2fa,
-                // }),
-                {
-                    Ok(User::new(
-                        Email::parse(user.email).expect("Valid email"),
-                        HashedPassword::parse(user.password_hash)
-                            .await
-                            .expect("Valid password"),
-                        user.requires_2fa,
-                    ))
-                }
+                Some(user) => Ok(User::new(
+                    Email::parse(user.email).expect("Valid email"),
+                    // HashedPassword::parse(user.password_hash)
+                    //     .await
+                    //     .expect("Valid password"),
+                    HashedPassword::parse_password_hash(user.password_hash)
+                        .expect("Valid password"),
+                    user.requires_2fa,
+                )),
                 None => Err(UserStoreError::UserNotFound),
             },
             _ => Err(UserStoreError::UserNotFound),

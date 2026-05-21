@@ -1,5 +1,5 @@
 use super::email::Email;
-use super::password::HashedPassword;
+
 use super::user::User;
 
 use crate::domain::AuthAPIError;
