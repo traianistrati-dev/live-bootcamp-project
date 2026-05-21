@@ -1,5 +1,5 @@
 use super::email::Email;
-use super::password::Password;
+use super::password::HashedPassword;
 use super::user::User;
 
 use crate::domain::AuthAPIError;
@@ -22,8 +22,7 @@ pub trait BannedTokenStore {
 pub trait UserStore {
     async fn add_user(&mut self, user: User) -> Result<(), UserStoreError>;
     async fn get_user(&self, email: &Email) -> Result<User, UserStoreError>;
-    async fn validate_user(&self, email: &Email, password: &Password)
-        -> Result<(), UserStoreError>;
+    async fn validate_user(&self, email: &Email, raw_password: &str) -> Result<(), UserStoreError>;
 }
 
 #[async_trait::async_trait]

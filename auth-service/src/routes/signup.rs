@@ -6,7 +6,7 @@ use crate::app_state::AppState;
 use crate::domain::User;
 
 use crate::domain::email::Email;
-use crate::domain::password::Password;
+use crate::domain::password::HashedPassword;
 use crate::AuthAPIError;
 
 #[derive(Deserialize)]
@@ -22,8 +22,9 @@ pub async fn signup(
     Json(request): Json<SignupRequest>,
 ) -> Result<impl IntoResponse, AuthAPIError> {
     let email = Email::parse(request.email).map_err(|_| AuthAPIError::InvalidCredentials)?;
-    let password =
-        Password::parse(request.password).map_err(|_| AuthAPIError::InvalidCredentials)?;
+    let password = HashedPassword::parse(request.password)
+        .await
+        .map_err(|_| AuthAPIError::InvalidCredentials)?;
 
     let user = User::new(email.clone(), password, request.requires_2fa);
     let mut user_store = state.user_store.write().await;

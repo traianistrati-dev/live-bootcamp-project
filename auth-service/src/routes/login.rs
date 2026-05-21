@@ -3,7 +3,7 @@ use crate::{
     domain::{
         data_stores::{LoginAttemptId, TwoFACode},
         email::Email,
-        password::Password,
+        password::HashedPassword,
     },
     utils, AuthAPIError,
 };
@@ -38,14 +38,20 @@ pub async fn login(
         Err(_) => return (jar, Err(AuthAPIError::InvalidCredentials)),
     };
 
-    let password = match Password::parse(request.password) {
-        Ok(password) => password,
-        Err(_) => return (jar, Err(AuthAPIError::InvalidCredentials)),
-    };
+    if HashedPassword::parse(request.password.clone())
+        .await
+        .is_err()
+    {
+        return (jar, Err(AuthAPIError::InvalidCredentials));
+    }
 
     let user_store = state.user_store.write().await;
 
-    if user_store.validate_user(&email, &password).await.is_err() {
+    if user_store
+        .validate_user(&email, &request.password)
+        .await
+        .is_err()
+    {
         return (jar, Err(AuthAPIError::IncorrectCredentials));
     }
 

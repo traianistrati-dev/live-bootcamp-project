@@ -1,5 +1,5 @@
 use crate::domain::{
-    data_stores::UserStore, data_stores::UserStoreError, email::Email, password::Password,
+    data_stores::UserStore, data_stores::UserStoreError, email::Email, password::HashedPassword,
     user::User,
 };
 use std::collections::HashMap;
@@ -28,16 +28,14 @@ impl UserStore for HashmapUserStore {
         }
     }
 
-    async fn validate_user(
-        &self,
-        email: &Email,
-        password: &Password,
-    ) -> Result<(), UserStoreError> {
-        let user = self.get_user(email).await?;
-        if user.password.eq(password) {
-            return Ok(());
-        }
-        Err(UserStoreError::InvalidCredentials)
+    async fn validate_user(&self, email: &Email, raw_password: &str) -> Result<(), UserStoreError> {
+        //   let user = self.get_user(email).await?;
+        let user: &User = self.users.get(email).ok_or(UserStoreError::UserNotFound)?;
+
+        user.password // updated password verification
+            .verify_raw_password(raw_password)
+            .await
+            .map_err(|_| UserStoreError::InvalidCredentials)
     }
 }
 
@@ -49,8 +47,10 @@ mod tests {
         Email::parse(email.into()).expect("expects a valid@example.email ")
     }
 
-    fn helper_build_user_password(pass: &str) -> Password {
-        Password::parse(pass.into()).expect("expects a valid password minimum 8 chars long")
+    async fn helper_build_user_password(pass: &str) -> HashedPassword {
+        HashedPassword::parse(pass.into())
+            .await
+            .expect("expects a valid password minimum 8 chars long")
     }
 
     #[tokio::test]
@@ -59,7 +59,7 @@ mod tests {
         let user = store
             .add_user(User {
                 email: helper_build_user_email("test@example.com"),
-                password: helper_build_user_password("12345678"),
+                password: helper_build_user_password("12345678").await,
                 requires_2fa: false,
             })
             .await;
@@ -71,7 +71,7 @@ mod tests {
         let mut store = HashmapUserStore::default();
         let user = User {
             email: helper_build_user_email("test@example.com"),
-            password: helper_build_user_password("password"),
+            password: helper_build_user_password("password").await,
             requires_2fa: false,
         };
         store.add_user(user).await.unwrap();
@@ -89,19 +89,16 @@ mod tests {
     #[tokio::test]
     async fn test_validate_user() {
         let mut store = HashmapUserStore::default();
+        let email = helper_build_user_email("test@example.com");
+
         let user = User {
-            email: helper_build_user_email("test@example.com"),
-            password: helper_build_user_password("password"),
+            email: email.clone(),
+            password: helper_build_user_password("password").await,
             requires_2fa: false,
         };
         store.add_user(user).await.unwrap();
 
-        let is_user_valid_result = store
-            .validate_user(
-                &helper_build_user_email("test@example.com"),
-                &helper_build_user_password("password"),
-            )
-            .await;
+        let is_user_valid_result = store.validate_user(&email, "password").await;
         assert!(is_user_valid_result.is_ok());
     }
 }
