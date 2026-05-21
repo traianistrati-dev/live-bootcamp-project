@@ -1,6 +1,5 @@
 use crate::domain::{
-    data_stores::UserStore, data_stores::UserStoreError, email::Email, password::HashedPassword,
-    user::User,
+    data_stores::UserStore, data_stores::UserStoreError, email::Email, user::User,
 };
 use std::collections::HashMap;
 
@@ -42,6 +41,7 @@ impl UserStore for HashmapUserStore {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::domain::password::HashedPassword;
 
     fn helper_build_user_email(email: &str) -> Email {
         Email::parse(email.into()).expect("expects a valid@example.email ")

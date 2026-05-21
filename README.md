@@ -54,6 +54,22 @@ https://github.com/launchbadge/sqlx/blob/main/sqlx-cli/README.md#install
 #NOTE: Make sure to execute this command in the auth-service directory!
 #Generates build.rs script, which is used to generate the database schema
 3. sqlx migrate build-script
+
+4.
+a #SQLX_OFFLINE environment variable to avoid connecting to the database at runtime
+#Add this line to Dockerfile 
+# # Build application
+# COPY . .
+ENV SQLX_OFFLINE true
+#RUN cargo build --release --bin auth-service
+
+b # Adn to .env file
+SQLX_OFFLINE=true
+
+c#And execute this
+cargo sqlx prepare
+
+d #Restart rust-analyzer sever
 ```
 
 ## Docker Postgres
