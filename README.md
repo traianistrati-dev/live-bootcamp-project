@@ -80,3 +80,15 @@ d #Restart rust-analyzer sever
 # Run the Postgres container
 2. docker run --name ps-db -e POSTGRES_PASSWORD=[YOUR_POSTGRES_PASSWORD] -p 5432:5432 -d postgres:15.2-alpine
 ```
+
+
+## Drop Test Databases with Uiid as name
+```sql
+SELECT format(
+    'DROP DATABASE "%s";',
+    datname
+)
+FROM pg_database
+WHERE datname ~
+'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$';
+```

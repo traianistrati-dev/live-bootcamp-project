@@ -1,8 +1,10 @@
 use crate::helpers::TestApp;
+use test_macros::auto_db_cleanup;
 
+#[auto_db_cleanup]
 #[tokio::test]
 async fn root_returns_auth_ui() {
-    let app = TestApp::new().await;
+    let mut app = TestApp::new().await;
 
     let response = app.get_root().await;
 

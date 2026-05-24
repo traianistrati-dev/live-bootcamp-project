@@ -1,4 +1,4 @@
-use auth_service::{utils, Application};
+use auth_service::{Application, utils};
 
 use auth_service::app_state::AppState;
 use auth_service::services::data_stores::banned_tokens_store::HashsetBannedTokenStore;
@@ -15,12 +15,14 @@ pub struct TestApp {
     pub http_client: reqwest::Client,
     pub banned_tokens_store: Arc<RwLock<HashsetBannedTokenStore>>,
     pub hashmap_two_fa_code_store: Arc<RwLock<HashmapTwoFACodeStore>>,
+    pub database_name: String,
+    pub clean_up_called: bool,
 }
 
 impl TestApp {
     pub async fn new() -> Self {
         //let user_store = Arc::new(RwLock::new(HashmapUserStore::default()));
-        let pg_pool = configure_postgresql().await;
+        let (database_name, pg_pool) = configure_postgresql().await;
         let user_store = Arc::new(RwLock::new(PostgresUserStore::new(pg_pool)));
 
         let banned_tokens_store = Arc::new(RwLock::new(HashsetBannedTokenStore::default()));
@@ -55,6 +57,8 @@ impl TestApp {
             http_client,
             banned_tokens_store,
             hashmap_two_fa_code_store,
+            database_name,
+            clean_up_called: false,
         }
     }
 
@@ -122,13 +126,38 @@ impl TestApp {
             .await
             .expect("Failed to execute request.")
     }
+
+    pub async fn clean_up(&mut self) {
+        // if !self.clean_up_called.load(Ordering::Relaxed) {
+        if !self.clean_up_called {
+            let db_name = self.database_name.clone();
+            // let clean_up_called = self.clean_up_called.clone();
+
+            delete_database(&db_name).await;
+            // tokio::spawn(async move {
+            //     clean_up_called.store(true, Ordering::Relaxed);
+            // });
+            self.clean_up_called = true;
+        }
+    }
+}
+
+impl Drop for TestApp {
+    fn drop(&mut self) {
+        if !self.clean_up_called {
+            panic!(
+                "TestApp clean_up() was not called before drop() for database {}",
+                self.database_name
+            );
+        }
+    }
 }
 
 pub fn get_random_email() -> String {
     format!("{}@example.com", uuid::Uuid::new_v4())
 }
 
-async fn configure_postgresql() -> sqlx::PgPool {
+async fn configure_postgresql() -> (String, sqlx::PgPool) {
     let postgresql_conn_url = auth_service::utils::constants::prod::DATABASE_URL.to_owned();
 
     // We are creating a new database for each test case, and we need to ensure each database has a unique name!
@@ -139,14 +168,16 @@ async fn configure_postgresql() -> sqlx::PgPool {
     let postgresql_conn_url_with_db = format!("{}/{}", postgresql_conn_url, db_name);
 
     // Create a new connection pool and return it
-    auth_service::get_postgres_pool(&postgresql_conn_url_with_db)
+    let pg_pool = auth_service::get_postgres_pool(&postgresql_conn_url_with_db)
         .await
-        .expect("Failed to create Postgres connection pool!")
+        .expect("Failed to create Postgres connection pool!");
+
+    (db_name, pg_pool)
 }
 
 async fn configure_database(db_conn_string: &str, db_name: &str) {
-    use sqlx::postgres::PgPoolOptions;
     use sqlx::Executor;
+    use sqlx::postgres::PgPoolOptions;
 
     // Create database connection
     let connection = PgPoolOptions::new()
@@ -173,4 +204,43 @@ async fn configure_database(db_conn_string: &str, db_name: &str) {
         .run(&connection)
         .await
         .expect("Failed to migrate the database");
+}
+
+async fn delete_database(db_name: &str) {
+    use sqlx::Executor;
+    use sqlx::postgres::PgConnectOptions;
+    use sqlx::{Connection, PgConnection};
+    use std::str::FromStr;
+
+    let postgresql_conn_url: String = auth_service::utils::constants::prod::DATABASE_URL.to_owned();
+
+    let connection_options = PgConnectOptions::from_str(&postgresql_conn_url)
+        .expect("Failed to parse PostgreSQL connection string");
+
+    let mut connection = PgConnection::connect_with(&connection_options)
+        .await
+        .expect("Failed to connect to Postgres");
+
+    // Kill any active connections to the database
+    connection
+        .execute(
+            format!(
+                r#"
+                SELECT pg_terminate_backend(pg_stat_activity.pid)
+                FROM pg_stat_activity
+                WHERE pg_stat_activity.datname = '{}'
+                  AND pid <> pg_backend_pid();
+        "#,
+                db_name
+            )
+            .as_str(),
+        )
+        .await
+        .expect("Failed to drop the database.");
+
+    // Drop the database
+    connection
+        .execute(format!(r#"DROP DATABASE "{}";"#, db_name).as_str())
+        .await
+        .expect("Failed to drop the database.");
 }

@@ -1,11 +1,12 @@
 use crate::helpers::TestApp;
+use test_macros::auto_db_cleanup;
 
+#[auto_db_cleanup]
 #[tokio::test]
 async fn should_return_206_if_valid_credentials_and_2fa_enabled() {
+    let mut app = TestApp::new().await;
     let email = "example@email.test";
     let password = "12345678";
-
-    let app = TestApp::new().await;
 
     {
         // create new test User
@@ -38,7 +39,7 @@ async fn should_return_206_if_valid_credentials_and_2fa_enabled() {
     );
     //todo!();
 }
-
+#[auto_db_cleanup]
 #[tokio::test]
 async fn should_return_422_if_malformed_credentials() {
     let email = "example@email.test";
@@ -66,9 +67,10 @@ async fn should_return_422_if_malformed_credentials() {
         }),
     ];
 
-    helper_post_login_test_cases(test_cases, 422).await;
+    let mut app = TestApp::new().await;
+    helper_post_login_test_cases(test_cases, 422, &mut app).await;
 }
-
+#[auto_db_cleanup]
 #[tokio::test]
 async fn should_return_400_if_invalid_input() {
     let email = "example@email.test";
@@ -104,9 +106,11 @@ async fn should_return_400_if_invalid_input() {
         }),
     ];
 
-    helper_post_login_test_cases(test_cases, 400).await;
-}
+    let mut app = TestApp::new().await;
 
+    helper_post_login_test_cases(test_cases, 400, &mut app).await;
+}
+#[auto_db_cleanup]
 #[tokio::test]
 async fn should_return_401_if_incorrect_credentials() {
     let email = "example@email.test";
@@ -115,18 +119,18 @@ async fn should_return_401_if_incorrect_credentials() {
     let password = "12345678";
     let password_invalid = "_12345678";
 
-    {
-        // create new test User
-        let app = TestApp::new().await;
-        let response = app
-            .post_signup(&serde_json::json!({
-                "email": email,
-                "password": password,
-                "requires2FA": false
-            }))
-            .await;
-        assert_eq!(response.status().as_u16(), 201);
-    }
+    //{
+    // create new test User
+    let mut app = TestApp::new().await;
+    let response = app
+        .post_signup(&serde_json::json!({
+            "email": email,
+            "password": password,
+            "requires2FA": false
+        }))
+        .await;
+    assert_eq!(response.status().as_u16(), 201);
+    //}
 
     let test_cases = &[
         serde_json::json!({
@@ -139,15 +143,15 @@ async fn should_return_401_if_incorrect_credentials() {
         }),
     ];
 
-    helper_post_login_test_cases(test_cases, 401).await;
+    helper_post_login_test_cases(test_cases, 401, &mut app).await;
 }
-
+#[auto_db_cleanup]
 #[tokio::test]
 async fn should_return_200_if_valid_credentials_and_2fa_disabled() {
     let email = "example@email.test";
     let password = "12345678";
 
-    let app = TestApp::new().await;
+    let mut app = TestApp::new().await;
     {
         // create new test User
         let response = app
@@ -178,8 +182,12 @@ async fn should_return_200_if_valid_credentials_and_2fa_disabled() {
 }
 
 /// Test Helper method
-async fn helper_post_login_test_cases(test_cases: &[serde_json::Value], expected_status_code: u16) {
-    let app = TestApp::new().await;
+async fn helper_post_login_test_cases(
+    test_cases: &[serde_json::Value],
+    expected_status_code: u16,
+    app: &mut TestApp,
+) {
+    // let app = TestApp::new().await;
     for test_case in test_cases.iter() {
         let response = app.post_login(test_case).await;
 

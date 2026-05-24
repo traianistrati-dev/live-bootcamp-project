@@ -6,10 +6,12 @@ use auth_service::{
 
 use crate::helpers::TestApp;
 use auth_service::domain::data_stores::TwoFACode;
+use test_macros::auto_db_cleanup;
 
+#[auto_db_cleanup]
 #[tokio::test]
 async fn should_return_401_if_same_code_twice() {
-    let app = TestApp::new().await;
+    let mut app = TestApp::new().await;
 
     let email = "example@email.test";
     let password = "12345678";
@@ -80,9 +82,10 @@ async fn should_return_401_if_same_code_twice() {
     assert_eq!(response.status().as_u16(), 401);
 }
 
+#[auto_db_cleanup]
 #[tokio::test]
 async fn should_return_401_if_incorrect_credentials() {
-    let app = TestApp::new().await;
+    let mut app = TestApp::new().await;
 
     let email = "example@email.test";
     let password = "12345678";
@@ -143,10 +146,11 @@ async fn should_return_401_if_incorrect_credentials() {
     }
 }
 
+#[auto_db_cleanup]
 #[tokio::test]
 async fn should_return_401_if_old_code() {
     // Call login twice. Then, attempt to call verify-fa with the 2FA code from the first login requet. This should fail.
-    let app = TestApp::new().await;
+    let mut app = TestApp::new().await;
 
     let email = "example@email.test";
     let password = "12345678";
@@ -220,9 +224,10 @@ async fn should_return_401_if_old_code() {
     // assert_eq!(response.status().as_u16(), 200);
 }
 
+#[auto_db_cleanup]
 #[tokio::test]
 async fn should_return_400_if_invalid_input() {
-    let app = TestApp::new().await;
+    let mut app = TestApp::new().await;
 
     let email = "example@email.test";
     let password = "12345678";
@@ -298,9 +303,10 @@ async fn should_return_400_if_invalid_input() {
     }
 }
 
+#[auto_db_cleanup]
 #[tokio::test]
 async fn should_return_422_if_malformed_input() {
-    let app = TestApp::new().await;
+    let mut app = TestApp::new().await;
 
     let email = "example@email.test";
     let password = "12345678";
@@ -396,9 +402,10 @@ async fn should_return_422_if_malformed_input() {
     }
 }
 
+#[auto_db_cleanup]
 #[tokio::test]
 async fn should_return_200_if_correct_code() {
-    let app = TestApp::new().await;
+    let mut app = TestApp::new().await;
 
     let email = "example@email.test";
     let password = "12345678";
