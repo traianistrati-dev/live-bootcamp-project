@@ -75,7 +75,7 @@ async fn should_return_200_if_jwt_cookie_is_valid() {
         .banned_tokens_store
         .read()
         .await
-        .contains_banned_token(token)
+        .contains_token(token)
         .await
         .expect("Failed to check banned token");
 

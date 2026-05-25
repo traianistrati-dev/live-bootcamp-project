@@ -1,4 +1,4 @@
-use auth_service::{Application, utils};
+use auth_service::{utils, Application};
 
 use auth_service::app_state::AppState;
 use auth_service::services::data_stores::banned_tokens_store::HashsetBannedTokenStore;
@@ -158,7 +158,7 @@ pub fn get_random_email() -> String {
 }
 
 async fn configure_postgresql() -> (String, sqlx::PgPool) {
-    let postgresql_conn_url = auth_service::utils::constants::prod::DATABASE_URL.to_owned();
+    let postgresql_conn_url = auth_service::utils::constants::DATABASE_URL.to_owned();
 
     // We are creating a new database for each test case, and we need to ensure each database has a unique name!
     let db_name = uuid::Uuid::new_v4().to_string();
@@ -176,8 +176,8 @@ async fn configure_postgresql() -> (String, sqlx::PgPool) {
 }
 
 async fn configure_database(db_conn_string: &str, db_name: &str) {
-    use sqlx::Executor;
     use sqlx::postgres::PgPoolOptions;
+    use sqlx::Executor;
 
     // Create database connection
     let connection = PgPoolOptions::new()
@@ -207,12 +207,12 @@ async fn configure_database(db_conn_string: &str, db_name: &str) {
 }
 
 async fn delete_database(db_name: &str) {
-    use sqlx::Executor;
     use sqlx::postgres::PgConnectOptions;
+    use sqlx::Executor;
     use sqlx::{Connection, PgConnection};
     use std::str::FromStr;
 
-    let postgresql_conn_url: String = auth_service::utils::constants::prod::DATABASE_URL.to_owned();
+    let postgresql_conn_url: String = auth_service::utils::constants::DATABASE_URL.to_owned();
 
     let connection_options = PgConnectOptions::from_str(&postgresql_conn_url)
         .expect("Failed to parse PostgreSQL connection string");

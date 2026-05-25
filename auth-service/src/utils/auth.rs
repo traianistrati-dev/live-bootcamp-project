@@ -61,11 +61,7 @@ pub async fn validate_token(
     token: &str,
     banned_tokens_store: crate::app_state::BannedTokenStoreType,
 ) -> Result<Claims, Error> {
-    let banned_token = banned_tokens_store
-        .read()
-        .await
-        .contains_banned_token(token)
-        .await;
+    let banned_token = banned_tokens_store.read().await.contains_token(token).await;
 
     //    println!("\x1b[32m contains banned_token {:?} \x1b[0m", banned_token);
 

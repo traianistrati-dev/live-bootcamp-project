@@ -2,8 +2,6 @@ use super::email::Email;
 
 use super::user::User;
 
-use crate::domain::AuthAPIError;
-
 #[derive(Debug, PartialEq)]
 pub enum UserStoreError {
     UserAlreadyExists,
@@ -11,11 +9,17 @@ pub enum UserStoreError {
     InvalidCredentials,
     UnexpectedError,
 }
+#[derive(Debug, PartialEq)]
+pub enum BannedTokenStoreError {
+    MissingToken,
+    InvalidToken,
+    UnexpectedError,
+}
 
 #[async_trait::async_trait]
 pub trait BannedTokenStore {
-    async fn add_banned_token(&mut self, token: String) -> Result<(), AuthAPIError>;
-    async fn contains_banned_token(&self, token: &str) -> Result<bool, AuthAPIError>;
+    async fn add_token(&mut self, token: String) -> Result<(), BannedTokenStoreError>;
+    async fn contains_token(&self, token: &str) -> Result<bool, BannedTokenStoreError>;
 }
 
 #[async_trait::async_trait]
@@ -64,7 +68,6 @@ impl Default for LoginAttemptId {
     }
 }
 
-// TODO: Implement AsRef<str> for LoginAttemptId
 impl AsRef<str> for LoginAttemptId {
     fn as_ref(&self) -> &str {
         &self.0
@@ -95,7 +98,6 @@ impl Default for TwoFACode {
         Self(rand::rng().random_range(100_000..=999_999).to_string())
     }
 }
-// TODO: Implement AsRef<str> for TwoFACode
 impl AsRef<str> for TwoFACode {
     fn as_ref(&self) -> &str {
         &self.0

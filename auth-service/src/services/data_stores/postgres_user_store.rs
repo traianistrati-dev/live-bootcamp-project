@@ -19,9 +19,6 @@ impl PostgresUserStore {
 
 #[async_trait::async_trait]
 impl UserStore for PostgresUserStore {
-    // TODO: Implement all required methods.
-    // Note that you will need to make SQL queries against our PostgreSQL instance inside these methods.
-    // Ensure to parse the password_hash.
     async fn add_user(&mut self, user: User) -> Result<(), UserStoreError> {
         sqlx::query!(
             "INSERT INTO users (email, password_hash, requires_2fa) VALUES ($1, $2, $3)",
@@ -51,23 +48,15 @@ impl UserStore for PostgresUserStore {
             email.as_ref(),
         )
         .fetch_optional(&self.pool)
-        .await;
+        .await
+        .map_err(|_| UserStoreError::UserNotFound)?
+        .ok_or(UserStoreError::UserNotFound)?;
 
-        match user {
-            Ok(user) => match user {
-                Some(user) => Ok(User::new(
-                    Email::parse(user.email).expect("Valid email"),
-                    // HashedPassword::parse(user.password_hash)
-                    //     .await
-                    //     .expect("Valid password"),
-                    HashedPassword::parse_password_hash(user.password_hash)
-                        .expect("Valid password"),
-                    user.requires_2fa,
-                )),
-                None => Err(UserStoreError::UserNotFound),
-            },
-            _ => Err(UserStoreError::UserNotFound),
-        }
+        Ok(User::new(
+            Email::parse(user.email).expect("Valid email"),
+            HashedPassword::parse_password_hash(user.password_hash).expect("Valid password"),
+            user.requires_2fa,
+        ))
     }
 
     async fn validate_user(&self, email: &Email, raw_password: &str) -> Result<(), UserStoreError> {

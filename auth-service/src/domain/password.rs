@@ -9,21 +9,12 @@ use std::error::Error;
 pub struct HashedPassword(String);
 
 impl HashedPassword {
-    // TODO:
-    // Add a parse_password_hash function.
-    // To validate the format of the hash string,
-    // use PasswordHash::new
     pub fn parse_password_hash(hash: String) -> Result<HashedPassword, String> {
-        // todo!()
         let expected_password_hash =
             argon2::password_hash::PasswordHash::new(&hash).map_err(|op| op.to_string())?;
         Ok(HashedPassword(expected_password_hash.to_string()))
     }
 
-    // TODO:
-    // Add a verify_raw_password function.
-    // To verify the password candidate use
-    // Argon2::default().verify_password.
     pub async fn verify_raw_password(
         &self,
         password_candidate: &str,
@@ -31,18 +22,16 @@ impl HashedPassword {
         let password_hash = self.as_ref().to_owned();
         let password_candidate = password_candidate.to_owned();
 
-        let result =
-            tokio::task::spawn_blocking(move || -> Result<(), Box<dyn Error + Send + Sync>> {
-                let expected_password_hash =
-                    argon2::password_hash::PasswordHash::new(&password_hash)?;
+        tokio::task::spawn_blocking(move || -> Result<(), Box<dyn Error + Send + Sync>> {
+            let expected_password_hash = argon2::password_hash::PasswordHash::new(&password_hash)?;
 
-                Argon2::default()
-                    .verify_password(password_candidate.as_bytes(), &expected_password_hash)
-                    .map_err(|e| e.into())
-            })
-            .await??;
+            Argon2::default()
+                .verify_password(password_candidate.as_bytes(), &expected_password_hash)
+                .map_err(|e| e.into())
+        })
+        .await??;
 
-        Ok(result)
+        Ok(())
     }
 
     pub async fn parse(pass: String) -> Result<Self, String> {
@@ -60,11 +49,6 @@ impl HashedPassword {
     }
 }
 
-// Helper function to hash passwords before persisting them in storage.
-// TODO:
-// Hashing is a CPU-intensive operation. To avoid blocking
-// other async tasks, update this function to perform hashing on a
-// separate thread pool using tokio::task::spawn_blocking.
 async fn compute_password_hash(password: &str) -> Result<String, Box<dyn Error + Send + Sync>> {
     let password = password.to_owned();
 

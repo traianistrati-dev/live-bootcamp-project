@@ -28,6 +28,8 @@ sqlx = { version = "0.8.6", features = [ "runtime-tokio-rustls", "postgres", "mi
 
 argon2 = { version = "0.5.3", features = ["std"] }
 
+redis = { version = "0.32.7", features = ["tokio-comp"] }
+
 [dev-dependencies]
 reqwest = { version = "0.11.26", default-features = false, features = ["json", "cookies"] }
 fake = "=4.4.0"

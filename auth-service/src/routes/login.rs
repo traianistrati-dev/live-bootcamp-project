@@ -8,7 +8,6 @@ use crate::{
     utils, AuthAPIError,
 };
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
-//use axum_extra::extract::cookie::CookieJar;
 use axum_extra::extract::CookieJar;
 use serde::{Deserialize, Serialize};
 
@@ -94,7 +93,7 @@ async fn handle_2fa(
         .email_client
         .read()
         .await
-        .send_email(&email, &"2FA Code", two_fa_code.as_ref())
+        .send_email(email, "2FA Code", two_fa_code.as_ref())
         .await;
 
     if email_2fa_result.is_err() {
