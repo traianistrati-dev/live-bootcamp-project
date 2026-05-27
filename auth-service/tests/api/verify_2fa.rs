@@ -53,7 +53,7 @@ async fn should_return_401_if_same_code_twice() {
     let login_attempt_id = response_body.login_attempt_id;
 
     let code_tuple = app
-        .hashmap_two_fa_code_store
+        .two_fa_code_store
         .read()
         .await
         .get_code(&Email::parse(email.to_owned()).unwrap())
@@ -203,7 +203,7 @@ async fn should_return_401_if_old_code() {
     let login_attempt_id = response_body.login_attempt_id;
 
     let code_tuple = app
-        .hashmap_two_fa_code_store
+        .two_fa_code_store
         .read()
         .await
         .get_code(&Email::parse(email.to_owned()).unwrap())
@@ -447,7 +447,7 @@ async fn should_return_200_if_correct_code() {
     assert!(!response_body.login_attempt_id.is_empty());
 
     let code_tuple = app
-        .hashmap_two_fa_code_store
+        .two_fa_code_store
         .read()
         .await
         .get_code(&Email::parse(email.to_owned()).unwrap())

@@ -60,7 +60,7 @@ a #SQLX_OFFLINE environment variable to avoid connecting to the database at runt
 #Add this line to Dockerfile 
 # # Build application
 # COPY . .
-ENV SQLX_OFFLINE true
+ENV SQLX_OFFLINE=true
 #RUN cargo build --release --bin auth-service
 
 b # Adn to .env file

@@ -1,10 +1,13 @@
 use auth_service::{utils, Application};
 
 use auth_service::app_state::AppState;
-use auth_service::services::data_stores::banned_tokens_store::HashsetBannedTokenStore;
-use auth_service::services::data_stores::hashmap_two_fa_code_store::HashmapTwoFACodeStore;
+// use auth_service::services::data_stores::hashmap_two_fa_code_store::HashmapTwoFACodeStore;
 //use auth_service::services::data_stores::hashmap_user_store::HashmapUserStore;
+// use auth_service::services::data_stores::banned_tokens_store::HashsetBannedTokenStore;
 use auth_service::services::data_stores::postgres_user_store::PostgresUserStore;
+use auth_service::services::data_stores::redis_banned_token_store::RedisBannedTokenStore;
+use auth_service::services::data_stores::redis_two_fa_code_store::RedisTwoFACodeStore;
+
 use auth_service::services::mock_email_client::MockEmailClient;
 use std::sync::Arc;
 use tokio::sync::RwLock;
@@ -13,8 +16,8 @@ pub struct TestApp {
     pub address: String,
     pub cookie_jar: Arc<reqwest::cookie::Jar>,
     pub http_client: reqwest::Client,
-    pub banned_tokens_store: Arc<RwLock<HashsetBannedTokenStore>>,
-    pub hashmap_two_fa_code_store: Arc<RwLock<HashmapTwoFACodeStore>>,
+    pub banned_tokens_store: Arc<RwLock<RedisBannedTokenStore>>,
+    pub two_fa_code_store: Arc<RwLock<RedisTwoFACodeStore>>,
     pub database_name: String,
     pub clean_up_called: bool,
 }
@@ -25,14 +28,20 @@ impl TestApp {
         let (database_name, pg_pool) = configure_postgresql().await;
         let user_store = Arc::new(RwLock::new(PostgresUserStore::new(pg_pool)));
 
-        let banned_tokens_store = Arc::new(RwLock::new(HashsetBannedTokenStore::default()));
-        let hashmap_two_fa_code_store = Arc::new(RwLock::new(HashmapTwoFACodeStore::default()));
+        let redis_conn = std::sync::Arc::new(tokio::sync::RwLock::new(configure_redis()));
+        let banned_tokens_store = std::sync::Arc::new(tokio::sync::RwLock::new(
+            RedisBannedTokenStore::new(redis_conn.clone()),
+        ));
+        let two_fa_code_store = std::sync::Arc::new(tokio::sync::RwLock::new(
+            RedisTwoFACodeStore::new(redis_conn),
+        ));
+
         let email_client =
             std::sync::Arc::new(tokio::sync::RwLock::new(MockEmailClient::default()));
         let app_state = AppState::new(
             user_store,
             banned_tokens_store.clone(),
-            hashmap_two_fa_code_store.clone(),
+            two_fa_code_store.clone(),
             email_client,
         );
 
@@ -56,7 +65,7 @@ impl TestApp {
             cookie_jar,
             http_client,
             banned_tokens_store,
-            hashmap_two_fa_code_store,
+            two_fa_code_store,
             database_name,
             clean_up_called: false,
         }
@@ -155,6 +164,13 @@ impl Drop for TestApp {
 
 pub fn get_random_email() -> String {
     format!("{}@example.com", uuid::Uuid::new_v4())
+}
+
+fn configure_redis() -> redis::Connection {
+    auth_service::get_redis_client(utils::constants::REDIS_HOST_NAME.to_owned())
+        .expect("Failed to get Redis client")
+        .get_connection()
+        .expect("Failed to get Redis connection")
 }
 
 async fn configure_postgresql() -> (String, sqlx::PgPool) {
