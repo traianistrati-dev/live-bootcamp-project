@@ -1,3 +1,3 @@
 /target
-./test_macros/target
+/test_macros/target
 .env

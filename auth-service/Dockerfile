@@ -8,7 +8,7 @@ WORKDIR /app
 FROM chef AS planner
 #COPY . .
 COPY auth-service ./auth-service
-COPY test_macros ./test_macros
+COPY test_macros ./auth-service/test_macros
 # Capture info needed to build dependencies
 RUN cargo chef prepare --recipe-path recipe.json
 
@@ -16,7 +16,7 @@ FROM chef AS builder
 COPY --from=planner /app/recipe.json recipe.json
 
 COPY auth-service ./auth-service
-COPY test_macros ./test_macros
+COPY test_macros ./auth-service/test_macros
 
 WORKDIR /app/auth-service
 
