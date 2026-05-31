@@ -6,20 +6,20 @@ RUN apk add --no-cache musl-dev && cargo install cargo-chef
 WORKDIR /app
 
 FROM chef AS planner
-#COPY . .
-COPY auth-service ./auth-service
-COPY test_macros ./auth-service/test_macros
+COPY . .
+
+#test
+RUN find /app -name Cargo.toml
+RUN ls -la /app
+RUN ls -la /app/test_macros
+#test
+
 # Capture info needed to build dependencies
 RUN cargo chef prepare --recipe-path recipe.json
 
 FROM chef AS builder
 COPY --from=planner /app/recipe.json recipe.json
-
-COPY auth-service ./auth-service
-COPY test_macros ./auth-service/test_macros
-
-WORKDIR /app/auth-service
-
+COPY . .
 # Build dependencies - this is the caching Docker layer!
 RUN cargo chef cook --release --recipe-path recipe.json
 # Build application
