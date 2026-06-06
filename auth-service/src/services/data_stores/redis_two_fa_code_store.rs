@@ -45,14 +45,14 @@ impl TwoFACodeStore for RedisTwoFACodeStore {
             code.as_ref().to_owned(),
         );
         let serialized = serde_json::to_string(&two_fa_tuple)
-            .map_err(|_| TwoFACodeStoreError::UnexpectedError)?;
+            .map_err(|e| TwoFACodeStoreError::UnexpectedError(e.into()))?;
 
         let res: () = self
             .conn
             .write()
             .await
             .set_ex(&key, &serialized, TEN_MINUTES_IN_SECONDS)
-            .map_err(|_| TwoFACodeStoreError::UnexpectedError)?;
+            .map_err(|e| TwoFACodeStoreError::UnexpectedError(e.into()))?;
 
         /*
         hint: in edition 2024, the requirement `!: FromRedisValue` will fail
@@ -76,7 +76,7 @@ impl TwoFACodeStore for RedisTwoFACodeStore {
             .write()
             .await
             .del(&key)
-            .map_err(|_| TwoFACodeStoreError::UnexpectedError)?;
+            .map_err(|e| TwoFACodeStoreError::UnexpectedError(e.into()))?;
 
         Ok(res)
     }
@@ -102,13 +102,14 @@ impl TwoFACodeStore for RedisTwoFACodeStore {
             .map_err(|_| TwoFACodeStoreError::LoginAttemptIdNotFound)?;
 
         let res: String = res.ok_or(TwoFACodeStoreError::LoginAttemptIdNotFound)?;
-        let (login_attempt_id, code) =
-            serde_json::from_str(res.as_str()).map_err(|_| TwoFACodeStoreError::UnexpectedError)?;
+        let (login_attempt_id, code) = serde_json::from_str(res.as_str())
+            .map_err(|e| TwoFACodeStoreError::UnexpectedError(e.into()))?;
 
         let login_attempt_id = LoginAttemptId::parse(login_attempt_id)
-            .map_err(|_| TwoFACodeStoreError::UnexpectedError)?;
+            .map_err(|e| TwoFACodeStoreError::UnexpectedError(e.into()))?;
 
-        let code = TwoFACode::parse(code).map_err(|_| TwoFACodeStoreError::UnexpectedError)?;
+        let code =
+            TwoFACode::parse(code).map_err(|e| TwoFACodeStoreError::UnexpectedError(e.into()))?;
 
         Ok((login_attempt_id, code))
     }

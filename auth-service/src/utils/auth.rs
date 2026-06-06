@@ -23,10 +23,14 @@ fn create_auth_cookie(token: String) -> Cookie<'static> {
 
     cookie
 }
+use color_eyre::eyre::Result;
+use thiserror::Error;
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum GenerateTokenError {
-    TokenError(Error),
+    #[error("Token error")]
+    TokenError(#[source] Error),
+    #[error("Unexpected error")]
     UnexpectedError,
 }
 

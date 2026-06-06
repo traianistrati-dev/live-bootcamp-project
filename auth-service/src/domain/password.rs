@@ -3,7 +3,8 @@ use argon2::{
     Algorithm, Argon2, Params, PasswordHasher, PasswordVerifier, Version,
 };
 
-use std::error::Error;
+use crate::domain::data_stores::UserStoreError;
+use color_eyre::eyre::{eyre, Result};
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct HashedPassword(String);
@@ -16,17 +17,17 @@ impl HashedPassword {
     }
 
     #[tracing::instrument(name = "Verify raw password", skip_all)]
-    pub async fn verify_raw_password(
-        &self,
-        password_candidate: &str,
-    ) -> Result<(), Box<dyn Error + Send + Sync>> {
+    pub async fn verify_raw_password(&self, password_candidate: &str) -> Result<()>
+// Result<(), Box<dyn Error + Send + Sync>>
+    {
         let current_span: tracing::Span = tracing::Span::current();
 
         let password_hash = self.as_ref().to_owned();
         let password_candidate = password_candidate.to_owned();
 
-        let result =
-            tokio::task::spawn_blocking(move || -> Result<(), Box<dyn Error + Send + Sync>> {
+        let result = tokio::task::spawn_blocking(move ||
+               // -> Result<(), Box<dyn Error + Send + Sync>>
+                {
                 current_span.in_scope(|| {
                     let expected_password_hash =
                         argon2::password_hash::PasswordHash::new(&password_hash)?;
@@ -36,19 +37,27 @@ impl HashedPassword {
                         .map_err(|e| e.into())
                 })
             })
-            .await;
+        .await;
 
         result?
     }
 
-    pub async fn parse(pass: String) -> Result<Self, String> {
+    #[tracing::instrument(name = "HashedPassword Parse", skip_all)]
+    pub async fn parse(pass: String) -> Result<Self> {
         if is_valid_password(&pass) {
-            match compute_password_hash(&pass).await {
-                Ok(hashed) => return Ok(HashedPassword(hashed)),
-                _ => return Err("Password hashing failed".to_owned()),
-            }
+            // match compute_password_hash(&pass).await {
+            //     Ok(hashed) => return Ok(HashedPassword(hashed)),
+            //     Err(e) => return Err(UserStoreError::UnexpectedError(e.into())),
+            // }
+
+            let result = compute_password_hash(&pass)
+                .await
+                .map_err(|e| UserStoreError::UnexpectedError(e.into()))?;
+
+            Ok(Self(result))
+        } else {
+            Err(eyre!("Failed to parse string to a HashedPassword type"))
         }
-        Err(format!("{} is not a valid password.", pass))
     }
 
     pub fn as_str(&self) -> &str {
@@ -57,13 +66,17 @@ impl HashedPassword {
 }
 
 #[tracing::instrument(name = "Computing password hash", skip_all)]
-async fn compute_password_hash(password: &str) -> Result<String, Box<dyn Error + Send + Sync>> {
+async fn compute_password_hash(password: &str) -> Result<String>
+//Result<String, Box<dyn Error + Send + Sync>>
+{
     let current_span: tracing::Span = tracing::Span::current();
 
     let password = password.to_owned();
 
-    let result =
-        tokio::task::spawn_blocking(move || -> Result<String, Box<dyn Error + Send + Sync>> {
+    let result = tokio::task::spawn_blocking(move ||
+        //-> color_eyre::eyre::Result<String>
+            //-> Result<String, Box<dyn Error + Send + Sync>>
+            {
             current_span.in_scope(|| {
                 let salt = SaltString::generate(&mut OsRng);
                 let password_hash = Argon2::new(
@@ -75,9 +88,11 @@ async fn compute_password_hash(password: &str) -> Result<String, Box<dyn Error +
                 .to_string();
 
                 Ok(password_hash)
+                //Err(Box::new(std::io::Error::other("oh no!")) as Box<dyn Error + Send + Sync>)
+                //Err(eyre!("oh no!"))
             })
         })
-        .await;
+    .await;
 
     result?
 }

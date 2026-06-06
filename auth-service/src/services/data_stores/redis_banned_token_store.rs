@@ -8,6 +8,8 @@ use crate::{
     utils::auth::TOKEN_TTL_SECONDS,
 };
 
+use color_eyre::eyre::{eyre, Result};
+
 pub struct RedisBannedTokenStore {
     conn: Arc<RwLock<Connection>>,
 }
@@ -26,7 +28,7 @@ impl BannedTokenStore for RedisBannedTokenStore {
 
         connection
             .set_ex(&key, true, TOKEN_TTL_SECONDS as u64)
-            .map_err(|_| BannedTokenStoreError::UnexpectedError)
+            .map_err(|e| BannedTokenStoreError::UnexpectedError(e.into()))
     }
 
     async fn contains_token(&self, token: &str) -> Result<bool, BannedTokenStoreError> {
@@ -36,7 +38,7 @@ impl BannedTokenStore for RedisBannedTokenStore {
         let mut connection = self.conn.write().await;
         let exists = connection
             .exists(&key)
-            .map_err(|_| BannedTokenStoreError::UnexpectedError)?;
+            .map_err(|e| BannedTokenStoreError::UnexpectedError(e.into()))?;
         Ok(exists)
     }
 }

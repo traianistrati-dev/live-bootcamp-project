@@ -1,4 +1,4 @@
-use crate::domain::{email::Email, email_client::EmailClient};
+use crate::domain::{email::Email, email_client::EmailClient, email_client::EmailError};
 
 #[derive(Default)]
 pub struct MockEmailClient;
@@ -10,7 +10,7 @@ impl EmailClient for MockEmailClient {
         recipient: &Email,
         subject: &str,
         content: &str,
-    ) -> Result<(), String> {
+    ) -> Result<(), EmailError> {
         // Our mock email client will simply log the recipient, subject, and content to standard output
         println!(
             "Sending email to {} with subject: {} and content: {}",

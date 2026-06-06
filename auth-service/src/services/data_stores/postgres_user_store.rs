@@ -7,6 +7,8 @@ use crate::domain::{
     User,
 };
 
+use color_eyre::eyre::{eyre, Result};
+
 pub struct PostgresUserStore {
     pool: PgPool,
 }
@@ -29,7 +31,7 @@ impl UserStore for PostgresUserStore {
         )
         .execute(&self.pool)
         .await
-        .map_err(|_| UserStoreError::UserAlreadyExists)
+        .map_err(|e| UserStoreError::UnexpectedError(e.into()))
         .ok();
 
         Ok(())
@@ -55,8 +57,10 @@ impl UserStore for PostgresUserStore {
         .ok_or(UserStoreError::UserNotFound)?;
 
         Ok(User::new(
-            Email::parse(user.email).expect("Valid email"),
-            HashedPassword::parse_password_hash(user.password_hash).expect("Valid password"),
+            // Email::parse(user.email).expect("Valid email"),
+            Email::parse(user.email).map_err(|e| UserStoreError::UnexpectedError(eyre!(e)))?,
+            HashedPassword::parse_password_hash(user.password_hash)
+                .map_err(|e| UserStoreError::UnexpectedError(eyre!(e)))?,
             user.requires_2fa,
         ))
     }
