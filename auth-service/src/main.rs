@@ -11,9 +11,11 @@ use auth_service::services::data_stores::redis_two_fa_code_store::RedisTwoFACode
 use auth_service::services::data_stores::redis_banned_token_store::RedisBannedTokenStore;
 use auth_service::services::mock_email_client::MockEmailClient;
 use auth_service::utils;
+use auth_service::utils::tracing::init_tracing;
 
 #[tokio::main]
 async fn main() {
+    init_tracing();
     //let user_store = std::sync::Arc::new(tokio::sync::RwLock::new(HashmapUserStore::default()));
     //let banned_tokens_store =std::sync::Arc::new(tokio::sync::RwLock::new(HashsetBannedTokenStore::default()));
     //let two_fa_code_store = std::sync::Arc::new(tokio::sync::RwLock::new(HashmapTwoFACodeStore::default()));
