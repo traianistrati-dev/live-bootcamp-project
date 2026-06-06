@@ -21,6 +21,7 @@ pub mod domain;
 use domain::errors::AuthAPIError;
 
 pub mod utils;
+
 // This struct encapsulates our application-related logic.
 pub struct Application {
     server: axum::serve::Serve<tokio::net::TcpListener, Router, Router>,
@@ -40,7 +41,17 @@ impl Application {
             .route("/verify-2fa", post(verify_2fa))
             .route("/verify-token", post(verify_token))
             .with_state(app_state)
-            .layer(Self::get_cors()?);
+            .layer(Self::get_cors()?)
+            .layer(
+                // New!
+                // Add a TraceLayer for HTTP requests to enable detailed tracing
+                // This layer will create spans for each request using the make_span_with_request_id function,
+                // and log events at the start and end of each request using on_request and on_response functions.
+                tower_http::trace::TraceLayer::new_for_http()
+                    .make_span_with(utils::tracing::make_span_with_request_id)
+                    .on_request(utils::tracing::on_request)
+                    .on_response(utils::tracing::on_response),
+            );
 
         let listener = tokio::net::TcpListener::bind(address).await?;
         let address = listener.local_addr()?.to_string();
