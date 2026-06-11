@@ -11,22 +11,27 @@ use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
 use axum_extra::extract::CookieJar;
 use serde::{Deserialize, Serialize};
 
-#[derive(Deserialize, Serialize)]
+use color_eyre::eyre::Result;
+
+use secrecy::SecretString;
+
+#[derive(Deserialize)]
 pub struct LoginRequest {
-    pub email: String,
-    pub password: String,
+    pub email: SecretString,
+    pub password: SecretString,
 }
 
 impl LoginRequest {
     pub fn new(email: &str, password: &str) -> Self {
         LoginRequest {
-            email: email.to_owned(),
-            password: password.to_owned(),
+            email: SecretString::new(email.to_owned().into_boxed_str()),
+            password: SecretString::new(password.to_owned().into_boxed_str()),
         }
     }
 }
 
 //#[axum::debug_handler]
+#[tracing::instrument(name = "Login", skip_all)]
 pub async fn login(
     State(state): State<AppState>,
     jar: CookieJar,
@@ -66,7 +71,7 @@ pub async fn login(
     }
 }
 
-// New!
+#[tracing::instrument(name = "Handle 2fa", skip_all)]
 async fn handle_2fa(
     state: &AppState,
     email: &Email,
@@ -87,18 +92,18 @@ async fn handle_2fa(
     {
         return (jar, Err(AuthAPIError::UnexpectedError(e.into())));
     }
+    {
+        let email_2fa_result = state
+            .email_client
+            .read()
+            .await
+            .send_email(email, "2FA Code", two_fa_code.as_ref())
+            .await;
 
-    let email_2fa_result = state
-        .email_client
-        .read()
-        .await
-        .send_email(email, "2FA Code", two_fa_code.as_ref())
-        .await;
-
-    if let Err(e) = email_2fa_result {
-        return (jar, Err(AuthAPIError::UnexpectedError(e.into())));
+        if let Err(e) = email_2fa_result {
+            return (jar, Err(AuthAPIError::UnexpectedError(e.into())));
+        }
     }
-
     let auth_cookie = match utils::auth::generate_auth_cookie(email) {
         Ok(cookie) => cookie,
         Err(e) => return (jar, Err(AuthAPIError::UnexpectedError(e.into()))),
@@ -118,7 +123,7 @@ async fn handle_2fa(
     )
 }
 
-// New!
+#[tracing::instrument(name = "Handle no 2fa", skip_all)]
 async fn handle_no_2fa(
     email: &Email,
     jar: CookieJar,

@@ -43,10 +43,6 @@ impl Application {
             .with_state(app_state)
             .layer(Self::get_cors()?)
             .layer(
-                // New!
-                // Add a TraceLayer for HTTP requests to enable detailed tracing
-                // This layer will create spans for each request using the make_span_with_request_id function,
-                // and log events at the start and end of each request using on_request and on_response functions.
                 tower_http::trace::TraceLayer::new_for_http()
                     .make_span_with(utils::tracing::make_span_with_request_id)
                     .on_request(utils::tracing::on_request)

@@ -8,7 +8,7 @@ use crate::{
     utils::auth::TOKEN_TTL_SECONDS,
 };
 
-use color_eyre::eyre::{eyre, Result};
+use color_eyre::eyre::{Result, WrapErr};
 
 pub struct RedisBannedTokenStore {
     conn: Arc<RwLock<Connection>>,
@@ -22,15 +22,23 @@ impl RedisBannedTokenStore {
 
 #[async_trait::async_trait]
 impl BannedTokenStore for RedisBannedTokenStore {
+    #[tracing::instrument(name = "auth banned token store add token", skip_all)]
     async fn add_token(&mut self, token: String) -> Result<(), BannedTokenStoreError> {
         let key: String = get_key(token.as_str());
-        let mut connection = self.conn.write().await;
 
-        connection
-            .set_ex(&key, true, TOKEN_TTL_SECONDS as u64)
+        let ttl: u64 = TOKEN_TTL_SECONDS
+            .try_into()
+            .wrap_err("failed to cast TOKEN_TTL_SECONDS to u64") // New! use color_eyre::eyre::WrapErr
+            .map_err(BannedTokenStoreError::UnexpectedError)?; // Updated!
+
+        self.conn
+            .write()
+            .await
+            .set_ex(&key, true, ttl)
             .map_err(|e| BannedTokenStoreError::UnexpectedError(e.into()))
     }
 
+    #[tracing::instrument(name = "auth banned token store contains token", skip_all)]
     async fn contains_token(&self, token: &str) -> Result<bool, BannedTokenStoreError> {
         // Check if the token exists by calling the exists method on the Redis connection
         //todo!()

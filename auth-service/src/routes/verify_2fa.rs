@@ -10,10 +10,12 @@ use crate::{
 };
 use axum::{extract::State, response::IntoResponse, Json};
 use axum_extra::extract::CookieJar;
+use secrecy::SecretString;
 use serde::Deserialize;
 
 use color_eyre::eyre::{eyre, Context, Result};
 
+#[tracing::instrument(name = "routes verify 2fa", skip_all)]
 pub async fn verify_2fa(
     State(state): State<AppState>,
     jar: CookieJar,
@@ -61,7 +63,7 @@ pub async fn verify_2fa(
 
 #[derive(Deserialize, Debug)]
 pub struct Verify2FARequest {
-    pub email: String,
+    pub email: SecretString,
     #[serde(rename = "loginAttemptId")]
     pub login_attempt_id: String,
     #[serde(rename = "2FACode")]

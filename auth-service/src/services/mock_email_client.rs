@@ -1,4 +1,8 @@
+use secrecy::ExposeSecret;
+
 use crate::domain::{email::Email, email_client::EmailClient, email_client::EmailError};
+
+//use color_eyre::eyre::{eyre, Context, Report, Result};
 
 #[derive(Default)]
 pub struct MockEmailClient;
@@ -10,11 +14,18 @@ impl EmailClient for MockEmailClient {
         recipient: &Email,
         subject: &str,
         content: &str,
-    ) -> Result<(), EmailError> {
+    ) -> color_eyre::eyre::Result<(), EmailError> {
         // Our mock email client will simply log the recipient, subject, and content to standard output
-        println!(
+        // println!(
+        //     "Sending email to {} with subject: {} and content: {}",
+        //     recipient.as_ref(),
+        //     subject,
+        //     content
+        // );
+
+        tracing::debug!(
             "Sending email to {} with subject: {} and content: {}",
-            recipient.as_ref(),
+            recipient.as_ref().expose_secret(),
             subject,
             content
         );

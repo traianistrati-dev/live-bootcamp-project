@@ -6,6 +6,7 @@ use auth_service::{
 
 use crate::helpers::TestApp;
 use auth_service::domain::data_stores::TwoFACode;
+use secrecy::SecretString;
 use test_macros::auto_db_cleanup;
 
 #[auto_db_cleanup]
@@ -52,11 +53,12 @@ async fn should_return_401_if_same_code_twice() {
 
     let login_attempt_id = response_body.login_attempt_id;
 
+    let email = Email::parse(SecretString::new(email.to_owned().into_boxed_str())).unwrap();
     let code_tuple = app
         .two_fa_code_store
         .read()
         .await
-        .get_code(&Email::parse(email.to_owned()).unwrap())
+        .get_code(&email)
         .await
         .unwrap();
 
@@ -64,7 +66,7 @@ async fn should_return_401_if_same_code_twice() {
 
     let response = app
         .post_verify2fa(&serde_json::json!({
-            "email": email,
+            "email": email.as_str(),
             "loginAttemptId": login_attempt_id,
             "2FACode": code
         }))
@@ -74,7 +76,7 @@ async fn should_return_401_if_same_code_twice() {
 
     let response = app
         .post_verify2fa(&serde_json::json!({
-            "email": email,
+            "email": email.as_str(),
             "loginAttemptId": login_attempt_id,
             "2FACode": code
         }))
@@ -201,12 +203,12 @@ async fn should_return_401_if_old_code() {
     assert!(!response_body.login_attempt_id.is_empty());
 
     let login_attempt_id = response_body.login_attempt_id;
-
+    let email = Email::parse(SecretString::new(email.to_owned().into_boxed_str())).unwrap();
     let code_tuple = app
         .two_fa_code_store
         .read()
         .await
-        .get_code(&Email::parse(email.to_owned()).unwrap())
+        .get_code(&email)
         .await
         .unwrap();
 
@@ -214,7 +216,7 @@ async fn should_return_401_if_old_code() {
 
     let response = app
         .post_verify2fa(&serde_json::json!({
-            "email": email,
+            "email": email.as_str(),
             "loginAttemptId": login_attempt_id,
             "2FACode": code
         }))
@@ -446,17 +448,18 @@ async fn should_return_200_if_correct_code() {
     assert_eq!(response_body.message, "2FA required".to_owned());
     assert!(!response_body.login_attempt_id.is_empty());
 
+    let email = Email::parse(SecretString::new(email.to_owned().into_boxed_str())).unwrap();
     let code_tuple = app
         .two_fa_code_store
         .read()
         .await
-        .get_code(&Email::parse(email.to_owned()).unwrap())
+        .get_code(&email)
         .await
         .unwrap();
 
     let response = app
         .post_verify2fa(&serde_json::json!({
-            "email": email,
+            "email": email.as_str(),
             "loginAttemptId": response_body.login_attempt_id,
             "2FACode": code_tuple.1.as_ref()
         }))

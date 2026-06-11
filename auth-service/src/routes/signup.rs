@@ -8,11 +8,12 @@ use crate::domain::User;
 use crate::domain::email::Email;
 use crate::domain::password::HashedPassword;
 use crate::AuthAPIError;
+use secrecy::SecretString;
 
 #[derive(Deserialize)]
 pub struct SignupRequest {
-    pub email: String,
-    pub password: String,
+    pub email: SecretString,
+    pub password: SecretString,
     #[serde(rename = "requires2FA")]
     pub requires_2fa: bool,
 }

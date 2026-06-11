@@ -10,7 +10,7 @@ use super::user::User;
 //     UnexpectedError,
 // }
 //
-use color_eyre::eyre::{eyre, Report, Result};
+use color_eyre::eyre::{eyre, Context, Report, Result};
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -51,11 +51,17 @@ pub trait BannedTokenStore {
     async fn contains_token(&self, token: &str) -> Result<bool, BannedTokenStoreError>;
 }
 
+use secrecy::SecretString;
+
 #[async_trait::async_trait]
 pub trait UserStore {
     async fn add_user(&mut self, user: User) -> Result<(), UserStoreError>;
     async fn get_user(&self, email: &Email) -> Result<User, UserStoreError>;
-    async fn validate_user(&self, email: &Email, raw_password: &str) -> Result<(), UserStoreError>;
+    async fn validate_user(
+        &self,
+        email: &Email,
+        raw_password: &SecretString,
+    ) -> Result<(), UserStoreError>;
 }
 
 #[async_trait::async_trait]
@@ -97,8 +103,9 @@ pub struct LoginAttemptId(String);
 impl LoginAttemptId {
     pub fn parse(id: String) -> Result<Self> {
         // Use the `parse_str` function from the `uuid` crate to ensure `id` is a valid UUID
-        let parsed_id =
-            uuid::Uuid::parse_str(&id).map_err(|_| eyre!("Invalid login attempt id"))?;
+        let parsed_id = uuid::Uuid::parse_str(&id)
+            //.map_err(|_| eyre!("Invalid login attempt id"))?;
+            .wrap_err("Invalid login attempt id")?; //color_eyre::eyre::Context
         Ok(Self(parsed_id.to_string()))
     }
 }
@@ -121,7 +128,10 @@ pub struct TwoFACode(String);
 impl TwoFACode {
     pub fn parse(code: String) -> Result<Self> {
         // Ensure `code` is a valid 6-digit code
-        let code_as_u32 = code.parse::<u32>().map_err(|_| eyre!("Invalid 2FA code"))?;
+        let code_as_u32 = code
+            .parse::<u32>()
+            //.map_err(|_| eyre!("Invalid 2FA code"))?;
+            .wrap_err("Invalid 2FA code")?;
 
         if (100_000..=999_999).contains(&code_as_u32) {
             Ok(Self(code))

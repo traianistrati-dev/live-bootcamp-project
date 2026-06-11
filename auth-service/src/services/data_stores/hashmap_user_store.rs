@@ -1,6 +1,7 @@
 use crate::domain::{
     data_stores::UserStore, data_stores::UserStoreError, email::Email, user::User,
 };
+use secrecy::SecretString;
 use std::collections::HashMap;
 
 #[derive(Default)]
@@ -27,7 +28,11 @@ impl UserStore for HashmapUserStore {
         }
     }
 
-    async fn validate_user(&self, email: &Email, raw_password: &str) -> Result<(), UserStoreError> {
+    async fn validate_user(
+        &self,
+        email: &Email,
+        raw_password: &SecretString,
+    ) -> Result<(), UserStoreError> {
         //   let user = self.get_user(email).await?;
         let user: &User = self.users.get(email).ok_or(UserStoreError::UserNotFound)?;
 
@@ -98,7 +103,12 @@ mod tests {
         };
         store.add_user(user).await.unwrap();
 
-        let is_user_valid_result = store.validate_user(&email, "password").await;
+        let is_user_valid_result = store
+            .validate_user(
+                &email,
+                &SecretString::new("password".to_owned().into_boxed_str()),
+            )
+            .await;
         assert!(is_user_valid_result.is_ok());
     }
 }

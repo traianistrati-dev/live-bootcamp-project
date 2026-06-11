@@ -9,6 +9,8 @@ use crate::domain::{
 
 use color_eyre::eyre::{eyre, Result};
 
+use secrecy::{ExposeSecret, SecretString};
+
 pub struct PostgresUserStore {
     pool: PgPool,
 }
@@ -25,8 +27,8 @@ impl UserStore for PostgresUserStore {
     async fn add_user(&mut self, user: User) -> Result<(), UserStoreError> {
         sqlx::query!(
             "INSERT INTO users (email, password_hash, requires_2fa) VALUES ($1, $2, $3)",
-            user.email.as_ref(),
-            user.password.as_ref(),
+            user.email.as_ref().expose_secret(),
+            user.password.as_ref().expose_secret(),
             user.requires_2fa,
         )
         .execute(&self.pool)
@@ -49,7 +51,7 @@ impl UserStore for PostgresUserStore {
         let user = sqlx::query_as!(
             UserSql,
             "SELECT email, password_hash, requires_2fa FROM users WHERE email = $1",
-            email.as_ref(),
+            email.as_ref().expose_secret(),
         )
         .fetch_optional(&self.pool)
         .await
@@ -58,15 +60,22 @@ impl UserStore for PostgresUserStore {
 
         Ok(User::new(
             // Email::parse(user.email).expect("Valid email"),
-            Email::parse(user.email).map_err(|e| UserStoreError::UnexpectedError(eyre!(e)))?,
-            HashedPassword::parse_password_hash(user.password_hash)
+            Email::parse(SecretString::new(user.email.into_boxed_str()))
                 .map_err(|e| UserStoreError::UnexpectedError(eyre!(e)))?,
+            HashedPassword::parse_password_hash(SecretString::new(
+                user.password_hash.into_boxed_str(),
+            ))
+            .map_err(|e| UserStoreError::UnexpectedError(eyre!(e)))?,
             user.requires_2fa,
         ))
     }
 
     #[tracing::instrument(name = "Validating user credentials in PostgreSQL", skip_all)]
-    async fn validate_user(&self, email: &Email, raw_password: &str) -> Result<(), UserStoreError> {
+    async fn validate_user(
+        &self,
+        email: &Email,
+        raw_password: &SecretString,
+    ) -> Result<(), UserStoreError> {
         let user: User = self.get_user(email).await?;
 
         user.password // updated password verification

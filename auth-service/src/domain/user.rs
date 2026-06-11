@@ -1,6 +1,6 @@
 use crate::domain::{email::Email, password::HashedPassword};
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct User {
     pub email: Email,
     pub password: HashedPassword,

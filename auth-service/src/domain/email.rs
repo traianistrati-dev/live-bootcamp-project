@@ -1,23 +1,45 @@
+use color_eyre::eyre::{eyre, Result};
+use secrecy::{ExposeSecret, SecretString};
 use validator::ValidateEmail;
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct Email(String);
+#[derive(Clone, Debug)]
+pub struct Email(SecretString);
 
-impl Email {
-    pub fn parse(email: String) -> Result<Email, String> {
-        if email.validate_email() {
-            return Ok(Self(email));
-        }
-        Err(format!("{} is not a valid email.", email))
-    }
-
-    pub fn as_str(&self) -> &str {
-        &self.0
+impl PartialEq for Email {
+    fn eq(&self, other: &Self) -> bool {
+        self.0.expose_secret() == other.0.expose_secret()
     }
 }
 
-impl AsRef<str> for Email {
-    fn as_ref(&self) -> &str {
+// New!
+impl std::hash::Hash for Email {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.0.expose_secret().hash(state);
+    }
+}
+
+// New!
+impl Eq for Email {}
+
+impl Email {
+    pub fn parse(s: SecretString) -> Result<Self> {
+        if s.expose_secret().validate_email() {
+            Ok(Self(s))
+        } else {
+            Err(eyre!(format!(
+                "{} is not a valid email.",
+                s.expose_secret()
+            )))
+        }
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.0.expose_secret()
+    }
+}
+
+impl AsRef<SecretString> for Email {
+    fn as_ref(&self) -> &SecretString {
         &self.0
     }
 }
@@ -30,20 +52,21 @@ mod tests {
     use fake::Fake;
     use quickcheck::Gen;
     use rand::SeedableRng;
+    use secrecy::SecretString; // New!
 
     #[test]
     fn empty_string_is_rejected() {
-        let email = "".to_string();
+        let email = SecretString::new("".to_owned().into_boxed_str());
         assert!(Email::parse(email).is_err());
     }
     #[test]
     fn email_missing_at_symbol_is_rejected() {
-        let email = "ursuladomain.com".to_string();
+        let email = SecretString::new("ursuladomain.com".to_owned().into_boxed_str()); // Updated!
         assert!(Email::parse(email).is_err());
     }
     #[test]
     fn email_missing_subject_is_rejected() {
-        let email = "@domain.com".to_string();
+        let email = SecretString::new("@domain.com".to_owned().into_boxed_str()); // Updated!
         assert!(Email::parse(email).is_err());
     }
 
@@ -61,6 +84,6 @@ mod tests {
 
     #[quickcheck_macros::quickcheck]
     fn valid_emails_are_parsed_successfully(valid_email: ValidEmailFixture) -> bool {
-        Email::parse(valid_email.0).is_ok()
+        Email::parse(SecretString::new(valid_email.0.into_boxed_str())).is_ok() // Updated!
     }
 }
