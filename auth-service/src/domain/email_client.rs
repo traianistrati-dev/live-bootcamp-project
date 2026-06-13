@@ -1,16 +1,5 @@
 use super::email::Email;
 
-use color_eyre::eyre::Report;
-use thiserror::Error;
-
-#[derive(Debug, Error)]
-pub enum EmailError {
-    // #[error("Invalid credentials")]
-    // InvalidCredentials,
-    #[error("Unexpected error")]
-    UnexpectedError(#[source] Report),
-}
-
 // This trait represents the interface all concrete email clients should implement
 #[async_trait::async_trait]
 pub trait EmailClient {
@@ -19,5 +8,6 @@ pub trait EmailClient {
         recipient: &Email,
         subject: &str,
         content: &str,
-    ) -> Result<(), EmailError>;
+    ) -> color_eyre::eyre::Result<()>;
+    // ) -> Result<(), EmailError>;
 }

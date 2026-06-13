@@ -1,6 +1,6 @@
 use secrecy::ExposeSecret;
 
-use crate::domain::{email::Email, email_client::EmailClient, email_client::EmailError};
+use crate::domain::{email::Email, email_client::EmailClient};
 
 //use color_eyre::eyre::{eyre, Context, Report, Result};
 
@@ -14,7 +14,7 @@ impl EmailClient for MockEmailClient {
         recipient: &Email,
         subject: &str,
         content: &str,
-    ) -> color_eyre::eyre::Result<(), EmailError> {
+    ) -> color_eyre::eyre::Result<()> {
         // Our mock email client will simply log the recipient, subject, and content to standard output
         // println!(
         //     "Sending email to {} with subject: {} and content: {}",

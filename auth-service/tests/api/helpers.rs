@@ -1,6 +1,6 @@
-use auth_service::{utils, Application};
-
 use auth_service::app_state::AppState;
+use auth_service::{utils, Application};
+use wiremock::MockServer;
 // use auth_service::services::data_stores::hashmap_two_fa_code_store::HashmapTwoFACodeStore;
 //use auth_service::services::data_stores::hashmap_user_store::HashmapUserStore;
 // use auth_service::services::data_stores::banned_tokens_store::HashsetBannedTokenStore;
@@ -20,6 +20,7 @@ pub struct TestApp {
     pub two_fa_code_store: Arc<RwLock<RedisTwoFACodeStore>>,
     pub database_name: String,
     pub clean_up_called: bool,
+    pub email_server: MockServer, // New!
 }
 
 impl TestApp {
@@ -60,6 +61,10 @@ impl TestApp {
             .build()
             .unwrap();
 
+        let email_server = MockServer::start().await; // New!
+        let base_url = email_server.uri(); // New!
+        let email_client = Arc::new(configure_postmark_email_client(base_url)); // Updated!
+
         Self {
             address,
             cookie_jar,
@@ -68,6 +73,7 @@ impl TestApp {
             two_fa_code_store,
             database_name,
             clean_up_called: false,
+            email_server,
         }
     }
 
@@ -259,4 +265,25 @@ async fn delete_database(db_name: &str) {
         .execute(format!(r#"DROP DATABASE "{}";"#, db_name).as_str())
         .await
         .expect("Failed to drop the database.");
+}
+
+// New!
+use auth_service::services::postmark_email_client::PostmarkEmailClient;
+use secrecy::SecretString;
+fn configure_postmark_email_client(base_url: String) -> PostmarkEmailClient {
+    use utils::constants::test::email_client;
+
+    let postmark_auth_token = SecretString::new("auth_token".to_owned().into_boxed_str());
+
+    let sender = auth_service::domain::email::Email::parse(SecretString::new(
+        email_client::SENDER.to_owned().into_boxed_str(),
+    ))
+    .unwrap();
+
+    let http_client = reqwest::Client::builder()
+        .timeout(email_client::TIMEOUT)
+        .build()
+        .expect("Failed to build HTTP client");
+
+    PostmarkEmailClient::new(base_url, sender, postmark_auth_token, http_client)
 }

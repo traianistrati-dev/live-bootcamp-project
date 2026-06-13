@@ -9,7 +9,7 @@ use auth_service::services::data_stores::postgres_user_store::PostgresUserStore;
 use auth_service::services::data_stores::redis_two_fa_code_store::RedisTwoFACodeStore;
 
 use auth_service::services::data_stores::redis_banned_token_store::RedisBannedTokenStore;
-use auth_service::services::mock_email_client::MockEmailClient;
+//use auth_service::services::mock_email_client::MockEmailClient;
 use auth_service::utils;
 use auth_service::utils::tracing::init_tracing;
 
@@ -29,7 +29,9 @@ async fn main() {
         RedisTwoFACodeStore::new(redis_conn),
     ));
 
-    let email_client = std::sync::Arc::new(tokio::sync::RwLock::new(MockEmailClient));
+    // let email_client = std::sync::Arc::new(tokio::sync::RwLock::new(MockEmailClient));
+    let email_client =
+        std::sync::Arc::new(tokio::sync::RwLock::new(configure_postmark_email_client())); // Updated!
 
     let pg_pool = configure_postgresql().await;
     let user_store = std::sync::Arc::new(tokio::sync::RwLock::new(PostgresUserStore::new(pg_pool)));
@@ -68,4 +70,24 @@ fn configure_redis() -> redis::Connection {
         .expect("Failed to get Redis client")
         .get_connection()
         .expect("Failed to get Redis connection")
+}
+use auth_service::services::postmark_email_client::PostmarkEmailClient;
+// New!
+fn configure_postmark_email_client() -> PostmarkEmailClient {
+    use utils::constants::prod::email_client;
+
+    let http_client = reqwest::Client::builder()
+        .timeout(email_client::TIMEOUT)
+        .build()
+        .expect("Failed to build HTTP client");
+
+    PostmarkEmailClient::new(
+        email_client::BASE_URL.to_owned(),
+        auth_service::domain::email::Email::parse(secrecy::SecretString::new(
+            email_client::SENDER.to_owned().into_boxed_str(),
+        ))
+        .unwrap(),
+        utils::constants::POSTMARK_AUTH_TOKEN.to_owned(),
+        http_client,
+    )
 }
